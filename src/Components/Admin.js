@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { signOut, onAuthStateChanged, createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth } from './firebaseConfig'; // Asegúrate de tener tu config de Firebase
+import { auth } from './firebaseConfig'; 
+import { getDatabase, ref, push, set, onValue, remove, query, orderByChild, equalTo } from 'firebase/database'; // Importar consulta
 import { useNavigate } from 'react-router-dom';
-import { getDatabase, ref, push, set } from 'firebase/database'; // Importar funciones para Firebase Realtime Database
-import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import './Dashboard.css';
 import meetapp from '../img/meetapp.png';
@@ -11,31 +10,62 @@ import meetapp from '../img/meetapp.png';
 const Admin = () => {
   const [user, setUser] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [showUserForm, setShowUserForm] = useState(false); // Para el pop-up de crear usuario
-  const [showRoomForm, setShowRoomForm] = useState(false); // Para el pop-up de crear sala de reunión
+  const [showUserForm, setShowUserForm] = useState(false);
+  const [showRoomForm, setShowRoomForm] = useState(false);
+  const [users, setUsers] = useState([]);
+  const [rooms, setRooms] = useState([]);
   const [newUserData, setNewUserData] = useState({
     firstName: '',
     lastName: '',
     email: '',
     password: '',
   });
-
   const [newRoomData, setNewRoomData] = useState({
     roomName: '',
     capacity: '',
     startTime: '',
     endTime: ''
   });
+  const [emailToDelete, setEmailToDelete] = useState(''); // Email a eliminar
+  const [isConfirmPopupVisible, setIsConfirmPopupVisible] = useState(false); // Control del popup de confirmación
+  const [selectedUserId, setSelectedUserId] = useState(null); // ID del usuario seleccionado para eliminar
 
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Escucha el estado de autenticación del usuario
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         setUser(user);
       } else {
-        navigate('/login'); // Si no está autenticado, redirigir a login
+        navigate('/login');
+      }
+    });
+
+    const db = getDatabase();
+    const usersRef = ref(db, 'users');
+    const roomsRef = ref(db, 'meetingRooms');
+
+    // Obtener usuarios
+    onValue(usersRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const usersList = Object.keys(data).map((key) => ({
+          id: key,
+          ...data[key]
+        }));
+        setUsers(usersList);
+      }
+    });
+
+    // Obtener salas de reunión
+    onValue(roomsRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const roomsList = Object.keys(data).map((key) => ({
+          id: key,
+          ...data[key]
+        }));
+        setRooms(roomsList);
       }
     });
 
@@ -44,37 +74,28 @@ const Admin = () => {
 
   const handleLogout = async () => {
     await signOut(auth);
-    navigate('/login'); // Redirigir al login después de cerrar sesión
-  };
-
-  const handlePasswordChange = () => {
-    alert('Cambiar contraseña');
+    navigate('/login');
   };
 
   const handleNewUserCreation = async (e) => {
     e.preventDefault();
     const { email, password } = newUserData;
     try {
-      // Crear un nuevo usuario en Firebase Authentication
       await createUserWithEmailAndPassword(auth, email, password);
-      alert('Usuario creado exitosamente');
-      setShowUserForm(false); // Cerrar el pop-up después de la creación
+      alert('User successfully created');
+      setShowUserForm(false);
     } catch (error) {
-      alert(`Error al crear usuario: ${error.message}`);
+      alert(`Error creating user: ${error.message}`);
     }
   };
 
   const handleNewRoomCreation = async (e) => {
     e.preventDefault();
     try {
-      // Inicializa la instancia de la base de datos
       const db = getDatabase();
-      // Referencia a la colección 'meetingRooms'
       const roomRef = ref(db, 'meetingRooms');
-      // Genera una nueva referencia con un ID único
       const newRoomRef = push(roomRef);
 
-      // Guarda la nueva sala en la base de datos
       await set(newRoomRef, {
         roomName: newRoomData.roomName,
         capacity: newRoomData.capacity,
@@ -82,11 +103,62 @@ const Admin = () => {
         endTime: newRoomData.endTime
       });
 
-      alert(`Sala creada: ${newRoomData.roomName} con capacidad para ${newRoomData.capacity} personas desde ${newRoomData.startTime} hasta ${newRoomData.endTime}`);
-      setShowRoomForm(false); // Cerrar el pop-up después de la creación
+      alert(`Room created: ${newRoomData.roomName}`);
+      setShowRoomForm(false);
     } catch (error) {
-      alert(`Error al crear la sala: ${error.message}`);
+      alert(`Error creating room: ${error.message}`);
     }
+  };
+
+  // Buscar el usuario por email en la base de datos y mostrar confirmación
+  const handleSearchEmailToDelete = async (e) => {
+    e.preventDefault();
+    const db = getDatabase();
+    const usersRef = ref(db, 'users');
+    const emailQuery = query(usersRef, orderByChild('email'), equalTo(emailToDelete));
+
+    onValue(emailQuery, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const userId = Object.keys(data)[0]; // Obtener el ID del usuario
+        showConfirmationPopup(userId);
+      } else {
+        alert('User not found');
+      }
+    });
+  };
+
+  // Eliminar usuario
+  const handleDeleteUser = (userId) => {
+    const db = getDatabase();
+    const userRef = ref(db, `users/${userId}`);
+    remove(userRef)
+      .then(() => {
+        alert('User deleted successfully');
+        hideConfirmationPopup();
+      })
+      .catch((error) => alert(`Error deleting user: ${error.message}`));
+  };
+
+  // Mostrar el popup de confirmación
+  const showConfirmationPopup = (userId) => {
+    setSelectedUserId(userId);
+    setIsConfirmPopupVisible(true);
+  };
+
+  // Ocultar el popup de confirmación
+  const hideConfirmationPopup = () => {
+    setIsConfirmPopupVisible(false);
+    setSelectedUserId(null);
+  };
+
+  // Eliminar sala de reunión
+  const handleDeleteRoom = (roomId) => {
+    const db = getDatabase();
+    const roomRef = ref(db, `meetingRooms/${roomId}`);
+    remove(roomRef)
+      .then(() => alert('Room deleted successfully'))
+      .catch((error) => alert(`Error deleting room: ${error.message}`));
   };
 
   const handleInputChange = (e) => {
@@ -116,10 +188,9 @@ const Admin = () => {
             </div>
             {menuOpen && (
               <div className="dropdown-content">
-                <button onClick={handlePasswordChange}>Change Password</button>
                 <button onClick={handleLogout}>Logout</button>
                 <button onClick={() => setShowUserForm(true)}>Create New User</button>
-                <button onClick={() => setShowRoomForm(true)}>Create New Meeting Room</button> {/* Opción Crear Sala de Reunión */}
+                <button onClick={() => setShowRoomForm(true)}>Create New Meeting Room</button>
               </div>
             )}
           </div>
@@ -128,10 +199,52 @@ const Admin = () => {
 
       <div className="dashboard-body">
         <h1>Administrator Dashboard</h1>
-        {/* Aquí puedes añadir más contenido del dashboard */}
+
+        <h2>Delete a User by Email</h2>
+        <form onSubmit={handleSearchEmailToDelete}>
+          <label>Enter user email:</label>
+          <input
+            type="email"
+            value={emailToDelete}
+            onChange={(e) => setEmailToDelete(e.target.value)}
+            required
+          />
+          <button type="submit">Search and Delete</button>
+        </form>
+
+        {/* Popup de confirmación */}
+        {isConfirmPopupVisible && (
+          <div className="popup-overlay">
+            <div className="popup-content">
+              <h2>Are you sure you want to delete this user?</h2>
+              <p>This action cannot be undone.</p>
+              <button onClick={() => handleDeleteUser(selectedUserId)}>Yes, delete</button>
+              <button onClick={hideConfirmationPopup}>Cancel</button>
+            </div>
+          </div>
+        )}
+
+        <h2>Manage Users</h2>
+        <ul>
+          {users.map((user) => (
+            <li key={user.id}>
+              {user.firstName} {user.lastName} ({user.email})
+              <button onClick={() => handleDeleteUser(user.id)}>Delete</button>
+            </li>
+          ))}
+        </ul>
+
+        <h2>Manage Meeting Rooms</h2>
+        <ul>
+          {rooms.map((room) => (
+            <li key={room.id}>
+              {room.roomName} - Capacity: {room.capacity}
+              <button onClick={() => handleDeleteRoom(room.id)}>Delete</button>
+            </li>
+          ))}
+        </ul>
       </div>
 
-      {/* Pop-up de Crear Usuario */}
       {showUserForm && (
         <div className="popup-form">
           <div className="popup-content">
@@ -176,7 +289,6 @@ const Admin = () => {
         </div>
       )}
 
-      {/* Pop-up de Crear Sala de Reunión */}
       {showRoomForm && (
         <div className="popup-form">
           <div className="popup-content">
