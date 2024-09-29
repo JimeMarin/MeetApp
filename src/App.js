@@ -4,6 +4,7 @@ import Login from './Components/Login';
 import Dashboard from './Components/Dashboard';
 import './App.css';
 import Admin from './Components/Admin';
+import Booking from './Components/Booking';
 
 
 function App() {
@@ -12,11 +13,10 @@ function App() {
       
         <Routes>
           
-          <Route path="*" element={<Login />} />         
-          
+          <Route path="*" element={<Login />} />     
           <Route path="/dashboard" element={<Dashboard />} />
-
           <Route path="/admin" element={<Admin />} />
+          <Route path="/booking" element={<Booking />} />
           
         </Routes>
       

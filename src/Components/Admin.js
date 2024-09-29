@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { signOut, onAuthStateChanged, createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from './firebaseConfig'; // Asegúrate de tener tu config de Firebase
 import { useNavigate } from 'react-router-dom';
+import { getDatabase, ref, push, set } from 'firebase/database'; // Importar funciones para Firebase Realtime Database
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import './Dashboard.css';
@@ -47,7 +48,6 @@ const Admin = () => {
   };
 
   const handlePasswordChange = () => {
-    // Redirigir a una página de cambio de contraseña o abrir un modal
     alert('Cambiar contraseña');
   };
 
@@ -64,11 +64,29 @@ const Admin = () => {
     }
   };
 
-  const handleNewRoomCreation = (e) => {
+  const handleNewRoomCreation = async (e) => {
     e.preventDefault();
-    // Lógica para crear la sala de reunión (aquí puedes agregar la lógica para guardar la sala en Firebase)
-    alert(`Sala creada: ${newRoomData.roomName} con capacidad para ${newRoomData.capacity} personas desde ${newRoomData.startTime} hasta ${newRoomData.endTime}`);
-    setShowRoomForm(false); // Cerrar el pop-up después de la creación
+    try {
+      // Inicializa la instancia de la base de datos
+      const db = getDatabase();
+      // Referencia a la colección 'meetingRooms'
+      const roomRef = ref(db, 'meetingRooms');
+      // Genera una nueva referencia con un ID único
+      const newRoomRef = push(roomRef);
+
+      // Guarda la nueva sala en la base de datos
+      await set(newRoomRef, {
+        roomName: newRoomData.roomName,
+        capacity: newRoomData.capacity,
+        startTime: newRoomData.startTime,
+        endTime: newRoomData.endTime
+      });
+
+      alert(`Sala creada: ${newRoomData.roomName} con capacidad para ${newRoomData.capacity} personas desde ${newRoomData.startTime} hasta ${newRoomData.endTime}`);
+      setShowRoomForm(false); // Cerrar el pop-up después de la creación
+    } catch (error) {
+      alert(`Error al crear la sala: ${error.message}`);
+    }
   };
 
   const handleInputChange = (e) => {
@@ -87,7 +105,7 @@ const Admin = () => {
     <div className="dashboard-container">
       <header className="dashboard-header">
         <a href="/dashboard" className="logo-link">
-        <img src={meetapp} alt="Company Logo" className="company-logo" />
+          <img src={meetapp} alt="Company Logo" className="company-logo" />
         </a>
         {user && (
           <div className={`user-menu ${menuOpen ? "open" : ""}`} onClick={toggleMenu}>

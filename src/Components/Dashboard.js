@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { signOut, onAuthStateChanged } from 'firebase/auth';
-import { auth } from './firebaseConfig'; // Asegúrate de tener tu config de Firebase
+import { auth } from './firebaseConfig'; 
 import { useNavigate } from 'react-router-dom';
+import { getDatabase, ref, get, child } from 'firebase/database'; 
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import './Dashboard.css';
@@ -38,7 +39,7 @@ const Dashboard = () => {
 
   const handleLogout = async () => {
     await signOut(auth);
-    navigate('/login'); // Redirigir al login después de cerrar sesión
+    navigate('/login'); 
   };
 
   const handlePasswordChange = () => {
@@ -50,9 +51,47 @@ const Dashboard = () => {
     setMenuOpen(!menuOpen);
   };
 
-  const handleSearch = () => {
-    // Lógica para buscar disponibilidad de salas en la fecha y hora seleccionada
-    alert(`Buscar sala para el ${date.toDateString()} desde las ${startTime} hasta las ${endTime}`);
+  const handleSearch = async () => {
+    const db = getDatabase();
+    const dbRef = ref(db);
+  
+    try {
+      // Obtener todas las salas desde la base de datos
+      const snapshot = await get(child(dbRef, 'meetingRooms'));
+      
+      if (snapshot.exists()) {
+        const rooms = snapshot.val();
+        const availableRooms = [];
+  
+        // Convertir la hora de inicio y fin ingresadas por el usuario en Date
+        const userStartTime = new Date(`${date.toDateString()} ${startTime}`);
+        const userEndTime = new Date(`${date.toDateString()} ${endTime}`);
+  
+        // Recorrer todas las salas y verificar disponibilidad
+        Object.keys(rooms).forEach((roomId) => {
+          const room = rooms[roomId];
+          const roomStartTime = new Date(`${date.toDateString()} ${room.startTime}`);
+          const roomEndTime = new Date(`${date.toDateString()} ${room.endTime}`);
+  
+          // Verificar si la sala está disponible (no se solapan los horarios)
+          if (userEndTime <= roomStartTime || userStartTime >= roomEndTime) {
+            availableRooms.push(room.roomName); // Si no hay solapamiento, la sala está disponible
+          }
+        });
+  
+        if (availableRooms.length > 0) {
+          alert(`Salas disponibles: ${availableRooms.join(', ')}`);          
+          navigate('/booking');
+        } else {
+          alert('No hay salas disponibles para ese período de tiempo.');
+        }
+      } else {
+        alert('No se encontraron salas en la base de datos.');
+      }
+    } catch (error) {
+      console.error('Error al buscar salas:', error);
+      alert('Hubo un error al buscar las salas.');
+    }
   };
 
   return (
