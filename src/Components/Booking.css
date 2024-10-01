@@ -1,55 +1,149 @@
 .booking-container {
     width: 100%;
     padding: 20px;
-  }
-  
-  .booking-header {
+    max-width: 1200px;
+    margin: 0 auto;
+    font-family: Arial, sans-serif;
+}
+
+.booking-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-  }
-  
-  .booking-body {
-    max-width: 600px;
-    margin: 0 auto;
-  }
-  
-  h1 {
-    text-align: center;
     margin-bottom: 20px;
-  }
-  
-  label {
-    display: block;
+}
+
+.booking-body {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+h1 {
+    font-size: 24px;
+    font-weight: bold;
+    color: #2b2b2b;
+    margin-bottom: 20px;
+}
+
+label {
+    font-size: 14px;
+    color: #2b2b2b;
     margin-bottom: 5px;
-  }
-  
-  select,
-  input,
-  textarea {
+    display: inline-block;
+}
+
+select,
+input,
+textarea {
     width: 100%;
     padding: 10px;
     margin-bottom: 15px;
-  }
-  
-  .attendees-section {
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: #ccc;
+    font-size: 14px;
+}
+
+.attendees-section {
     margin-bottom: 15px;
-  }
-  
-  .assistance-section {
+}
+
+.assistance-section {
     margin-top: 20px;
-  }
-  
-  button {
+    display: flex;
+    flex-direction: column;
+}
+
+.assistance-checkboxes {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    font-size: 14px;
+}
+
+.checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.recurrence-section {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+button {
     width: 100%;
-    padding: 10px;
+    padding: 15px;
     background-color: #4CAF50;
     color: white;
+    font-size: 16px;
     border: none;
+    border-radius: 4px;
     cursor: pointer;
-  }
-  
-  button:hover {
+}
+
+button:hover {
     background-color: #45a049;
-  }
-  
+}
+
+.message-box {
+    width: 100%;
+    height: 150px;
+    resize: none;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 10px;
+    font-size: 14px;
+}
+
+.font-size-control {
+    font-size: 12px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    margin-left: 5px;
+    color: #555;
+}
+
+.meeting-steps {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+    width: 100%;
+}
+
+.meeting-step {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.step {
+    background-color: #4CAF50;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 12px;
+}
+
+.step.inactive {
+    background-color: #ccc;
+}
+
+.step-label {
+    font-size: 12px;
+    color: #555;
+}

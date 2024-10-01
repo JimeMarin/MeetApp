@@ -19,16 +19,7 @@
     min-height: 100vh;
   }
   
-  .dashboard-header {
-    background-color: white;
-    padding: 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid #ddd;
-    width: 100%;
-    position: relative;
-  }
+  
   
   .company-logo {
     max-width: 150px;
@@ -177,6 +168,7 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     padding: 20px;
     background-color: white;
+    color: black;
   }
   
   .time-selection {

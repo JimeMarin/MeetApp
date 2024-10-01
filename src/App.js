@@ -5,6 +5,7 @@ import Dashboard from './Components/Dashboard';
 import './App.css';
 import Admin from './Components/Admin';
 import Booking from './Components/Booking';
+import Navbar from './Components/Navbar';
 
 
 function App() {
@@ -12,7 +13,7 @@ function App() {
     <Router>
       
         <Routes>
-          
+          <Route path="/navbar" element={<Navbar />} />
           <Route path="*" element={<Login />} />     
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/admin" element={<Admin />} />
