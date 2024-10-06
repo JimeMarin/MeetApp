@@ -89,9 +89,7 @@ const Booking = () => {
       <Navbar />
       
       <div className="booking-body">
-        <h2>Book a Meeting Room</h2>
-
-        
+               
         <select onChange={(e) => handleRoomChange(e.target.value)} value={selectedRoom}>
           <option value="">Select a room</option>
           {availableRooms.map(room => (

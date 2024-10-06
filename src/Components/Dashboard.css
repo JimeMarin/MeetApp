@@ -165,11 +165,13 @@
   .react-calendar {
     border: 1px solid #ddd;
     border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 4px rgba(10, 9, 9, 0.797);
     padding: 20px;
-    background-color: white;
-    color: black;
+    background-color: rgb(173, 173, 173);
+    color: rgb(255, 255, 255);
+    
   }
+  
   
   .time-selection {
     display: flex;

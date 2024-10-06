@@ -7,7 +7,7 @@ import 'react-calendar/dist/Calendar.css';
 import './Dashboard.css';
 import meetapp from '../img/meetapp.png';
 
-const Admin = () => {
+const AdminDash = () => {
   const [user, setUser] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [showUserForm, setShowUserForm] = useState(false);
@@ -82,6 +82,10 @@ const Admin = () => {
     const { email, password } = newUserData;
     try {
       await createUserWithEmailAndPassword(auth, email, password);
+      //add to your realtimedatabase AGREGAR LO MISMO QUE PARA ROOMS Y PUSH LOS IDS
+      const db = getDatabase();
+      const userRef = ref(db, 'users');
+
       alert('User successfully created');
       setShowUserForm(false);
     } catch (error) {
@@ -336,4 +340,4 @@ const Admin = () => {
   );
 };
 
-export default Admin;
+export default AdminDash;

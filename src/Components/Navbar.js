@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './Navbar.css';
 import { getAuth, signOut } from 'firebase/auth'; // Asegúrate de importar Firebase Authentication
 import { useNavigate } from 'react-router-dom'; // Importa useNavigate
+import Company_Logo from '../img/meetapp.png';
 
 const Navbar = ({ onChangePassword, onLogout }) => {
   const navigate = useNavigate(); // Inicializa la función de navegación
@@ -63,7 +64,7 @@ const Navbar = ({ onChangePassword, onLogout }) => {
     <nav className="navbar">
       {/* Logo de la empresa */}
       <div className="navbar-logo" onClick={() => navigate('/Dashboard')}>
-        <img src="../img/meetapp.png" alt="Company Logo" />
+        <img src={Company_Logo} alt="Company Logo" />
       </div>
 
       {/* Perfil del usuario */}

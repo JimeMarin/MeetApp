@@ -8,36 +8,37 @@
     display: flex;
     height: 100vh;
     width: 100vw;
+    background-color: #07101b;
   }
   
   .left-side {
-    flex: 1;
-    background-color: #f5f5f5;
+    flex: 2;
     display: flex;
-    justify-content: center;
-    align-items: center;
+    padding: 40px; 
   }
   
   .company-logo {
-    max-width: 80%;
-    height: auto;
+    display: flex;
+    align-items: center;
   }
-  
+  .company-logo img {
+    width: 60vw;
+  }
+
   .right-side {
     flex: 1;
     display: flex;
     justify-content: center;
-    align-items: center;
-    background-color: #ffffff;
+    align-items: center; 
+    padding: 40px;  
   }
   
   .login-form {
     width: 80%;
     max-width: 400px;
     padding: 20px;
-    background-color: #fff;
     border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    color: #fff;
   }
   
   .login-form h2 {
@@ -54,7 +55,7 @@
     display: block;
     font-size: 14px;
     margin-bottom: 5px;
-    color: #333;
+    color: #ffffff;
   }
   
   .input-group input {
@@ -74,20 +75,24 @@
   
   .remember-me {
     display: flex;
-    align-items: left;
+    align-items: left;        
   }
   
   .remember-me input {
     margin-right: 5px;
   }
+  .remember-me label {
+   color: #ffffff;
+  }
   
   .forgot-password button {
+    display: flex;
     background: none;
     border: none;
-    color: #142436;
+    color: #78a0aa;
     cursor: pointer;
     font-size: 14px;
-    align-self: flex-end;
+    align-self: right;
   }
   
   .forgot-password button:hover {
