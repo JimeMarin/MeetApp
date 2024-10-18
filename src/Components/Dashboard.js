@@ -49,7 +49,7 @@ const Dashboard = () => {
 
         setReservations(fetchedReservations); // Actualiza el estado con las reservas obtenidas
       } else {
-        console.log('No se encontraron reservas para el usuario.');
+        console.log('No bookings found.');
         setReservations([]); // Limpia las reservas si no hay datos
       }
     } catch (error) {
@@ -63,7 +63,7 @@ const Dashboard = () => {
   };
 
   const handlePasswordChange = () => {
-    alert('Cambiar contraseña');
+    alert('Change password');
   };
 
   const handleSearch = async () => {
