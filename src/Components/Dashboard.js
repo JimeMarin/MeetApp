@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { signOut, onAuthStateChanged } from 'firebase/auth';
+import {onAuthStateChanged } from 'firebase/auth';
 import { auth } from './firebaseConfig'; 
 import { useNavigate } from 'react-router-dom';
 import { getDatabase, ref, get, child } from 'firebase/database'; 
@@ -57,14 +57,7 @@ const Dashboard = () => {
     }
   };
 
-  const handleLogout = async () => {
-    await signOut(auth);
-    navigate('/login'); 
-  };
-
-  const handlePasswordChange = () => {
-    alert('Change password');
-  };
+  
 
   const handleSearch = async () => {
     const db = getDatabase();
