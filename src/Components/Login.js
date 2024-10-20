@@ -1,22 +1,46 @@
-import React, { useState } from 'react';
-import './Login.css';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import React, { useState, useEffect } from 'react';
+import { signInWithEmailAndPassword, sendPasswordResetEmail, setPersistence, browserSessionPersistence, browserLocalPersistence } from 'firebase/auth';
 import { auth } from './firebaseConfig'; 
 import { useNavigate } from 'react-router-dom';
 import Company_Logo from '../img/meetapp.png';
+import './Login.css';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
+  const [resetEmailSent, setResetEmailSent] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const rememberedEmail = localStorage.getItem('rememberedEmail');
+    if (rememberedEmail) {
+      setEmail(rememberedEmail);
+      setRememberMe(true);
+    }
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
 
     try {
+      // Establecer la persistencia basada en la opción "Remember me"
+      await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
+      
+      // Iniciar sesión
       await signInWithEmailAndPassword(auth, email, password);
-      setEmail('');
+      
+      // Manejar "Remember me"
+      if (rememberMe) {
+        localStorage.setItem('rememberedEmail', email);
+      } else {
+        localStorage.removeItem('rememberedEmail');
+      }
+      
+      // No limpiar el email si "Remember me" está activado
+      if (!rememberMe) {
+        setEmail('');
+      }
       setPassword('');
       navigate('/dashboard');           
     } catch (error) {      
@@ -24,9 +48,32 @@ const Login = () => {
     }
   };
 
-  const handlePasswordReset = () => {
-    // Lógica para enviar correo de restablecimiento de contraseña
-    console.log('Reset password');
+  const handleRememberMeChange = (e) => {
+    const isChecked = e.target.checked;
+    setRememberMe(isChecked);
+    if (!isChecked) {
+      localStorage.removeItem('rememberedEmail');
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      alert('Please enter your email address');
+      return;
+    }
+
+    try {
+      await sendPasswordResetEmail(auth, email);
+      setResetEmailSent(true);
+      alert('Password reset email sent. Please check your inbox.');
+    } catch (error) {
+      console.error('Error sending password reset email:', error);
+      alert('Error sending password reset email. Please try again.');
+    }
+  };
+
+  const handleResetPassword = () => {
+    navigate('/reset');
   };
 
   return (
@@ -65,19 +112,22 @@ const Login = () => {
                 type="checkbox"
                 id="rememberMe"
                 checked={rememberMe}
-                onChange={() => setRememberMe(!rememberMe)}
+                onChange={handleRememberMeChange}
               />
               <label htmlFor="rememberMe">Remember me</label>
             </div>
             <div className="forgot-password">
-              <button type="button" onClick={handlePasswordReset}>
+              <button type="button" onClick={handleForgotPassword}>
                 Forgot my password
               </button>
-              <button type="button" onClick={handlePasswordReset}>
+              <button type="button" onClick={handleResetPassword}>
                 Reset my password
               </button>
             </div>
           </div>
+          {resetEmailSent && (
+            <p className="reset-email-sent">Password reset email sent. Please check your inbox.</p>
+          )}
           <button type="submit" className="login-button">Login</button>
         </form>
       </div>
