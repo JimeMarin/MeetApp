@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getDatabase, ref, get, push, query, orderByChild, equalTo } from 'firebase/database';
+import { getDatabase, ref, get, push } from 'firebase/database';
 import { useLocation } from 'react-router-dom';
 import Navbar from './Navbar';
 import './Booking.css';
@@ -11,55 +11,22 @@ const Booking = () => {
   const [selectedCapacity, setSelectedCapacity] = useState(1);
   const [availableCapacities, setAvailableCapacities] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
-  const [availableRooms, setAvailableRooms] = useState([]);
 
   const location = useLocation();
-  const { date, startTime, endTime } = location.state || {};
+  const { date, startTime, endTime, availableRooms } = location.state || {};
 
   useEffect(() => {
     console.log("Date:", date);
     console.log("Start time:", startTime);
     console.log("End time:", endTime);
-    fetchAvailableRooms();
-  }, [date, startTime, endTime]);
-
-  const fetchAvailableRooms = async () => {
-    const db = getDatabase();
-    const roomsRef = ref(db, 'meetingRooms');
-    const bookingsRef = ref(db, 'bookings');
-  
-    try {
-      console.log("Fetching rooms and bookings...");
-      const roomsSnapshot = await get(roomsRef);
-      const allRooms = roomsSnapshot.val();
-      console.log("All rooms:", allRooms);
-  
-      const bookingsQuery = query(
-        bookingsRef,
-        orderByChild('date'),
-        equalTo(date)
-      );
-      const bookingsSnapshot = await get(bookingsQuery);
-      const bookings = bookingsSnapshot.val() || {};
-      console.log("Bookings for the selected date:", bookings);
-  
-      const availableRooms = Object.entries(allRooms).filter(([roomId, room]) => {
-        const conflictingBooking = Object.values(bookings).find(booking => 
-          booking.room === room.roomName &&
-          ((booking.startTime <= startTime && booking.endTime > startTime) ||
-           (booking.startTime < endTime && booking.endTime >= endTime) ||
-           (booking.startTime >= startTime && booking.endTime <= endTime))
-        );
-        console.log(`Room ${room.roomName} available: ${!conflictingBooking}`);
-        return !conflictingBooking;
-      }).map(([_, room]) => room);
-  
-      console.log("Available rooms:", availableRooms);
-      setAvailableRooms(availableRooms);
-    } catch (error) {
-      console.error('Error fetching available rooms:', error);
+    console.log("Available rooms:", availableRooms);
+    if (date && startTime && endTime && availableRooms) {
+      console.log("All required data is present");
+    } else {
+      console.error("Missing date, start time, end time, or available rooms");
     }
-  };
+    fetchUsers();
+  }, [date, startTime, endTime, availableRooms]);
 
   const fetchUsers = async () => {
     const db = getDatabase();
@@ -77,10 +44,13 @@ const Booking = () => {
   };
 
   const handleRoomChange = (roomName) => {
-    const selected = availableRooms.find(room => room.roomName === roomName);
+    const selected = availableRooms.find(room => room === roomName);
     if (selected) {
       setSelectedRoom(roomName);
-      setAvailableCapacities([...Array(selected.capacity).keys()].map(i => i + 1));
+      // Aquí deberías obtener la capacidad de la sala seleccionada
+      // Por ahora, usaremos un valor fijo de 10 como ejemplo
+      const capacity = 10;
+      setAvailableCapacities([...Array(capacity).keys()].map(i => i + 1));
       setSelectedCapacity(1);
     }
   };
@@ -119,14 +89,14 @@ const Booking = () => {
       
       <div className="booking-body">
         <h2>Book a Room</h2>
-        <p>Date: {new Date(date).toLocaleDateString()}</p>
-        <p>Time: {startTime} - {endTime}</p>
+        <p>Date: {date ? new Date(date).toLocaleDateString() : 'Not selected'}</p>
+        <p>Time: {startTime && endTime ? `${startTime} - ${endTime}` : 'Not selected'}</p>
         
         <select onChange={(e) => handleRoomChange(e.target.value)} value={selectedRoom}>
           <option value="">Select a room</option>
-          {availableRooms.map(room => (
-            <option key={room.roomName} value={room.roomName}>
-              {room.roomName}
+          {availableRooms && availableRooms.map(room => (
+            <option key={room} value={room}>
+              {room}
             </option>
           ))}
         </select>
