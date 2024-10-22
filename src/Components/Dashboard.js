@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { signOut, onAuthStateChanged } from 'firebase/auth';
 import { auth } from './firebaseConfig'; 
 import { useNavigate } from 'react-router-dom';
-import { getDatabase, ref, get, child } from 'firebase/database'; 
+import { getDatabase, ref, get, query, orderByChild, equalTo } from 'firebase/database';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import './Dashboard.css';
@@ -57,50 +57,86 @@ const Dashboard = () => {
     }
   };
 
-  const handleLogout = async () => {
-    await signOut(auth);
-    navigate('/login'); 
-  };
-
-  const handlePasswordChange = () => {
-    alert('Cambiar contraseña');
-  };
-
+  
   const handleSearch = async () => {
     const db = getDatabase();
-    const dbRef = ref(db);
+    const roomsRef = ref(db, 'meetingRooms');
+    const bookingsRef = ref(db, 'bookings');
   
     try {
-      const snapshot = await get(child(dbRef, 'meetingRooms'));
-      if (snapshot.exists()) {
-        const rooms = snapshot.val();
-        const availableRooms = [];
+      console.log("Fetching rooms and bookings...");
   
-        const userStartTime = new Date(`${date.toDateString()} ${startTime}`);
-        const userEndTime = new Date(`${date.toDateString()} ${endTime}`);
+      // Get all rooms
+      const roomsSnapshot = await get(roomsRef);
+      if (!roomsSnapshot.exists()) {
+        console.log("No rooms found in the database");
+        alert("No rooms found in the database. Please contact the administrator.");
+        return;
+      }
+      const rooms = roomsSnapshot.val();
+      console.log("Rooms:", rooms);
   
-        Object.keys(rooms).forEach((roomId) => {
-          const room = rooms[roomId];
-          const roomStartTime = new Date(`${date.toDateString()} ${room.startTime}`);
-          const roomEndTime = new Date(`${date.toDateString()} ${room.endTime}`);
+      // Get bookings for the selected date
+      const bookingsQuery = query(bookingsRef, orderByChild('date'), equalTo(date.toISOString().split('T')[0]));
+      const bookingsSnapshot = await get(bookingsQuery);
+      const bookings = bookingsSnapshot.val() || {};
+      console.log("Bookings for the selected date:", bookings);
   
-          if (userEndTime <= roomStartTime || userStartTime >= roomEndTime) {
-            availableRooms.push(room.roomName);
-          }
-        });
+      const availableRooms = [];
+      const userStartTime = new Date(`${date.toDateString()} ${startTime}`);
+      const userEndTime = new Date(`${date.toDateString()} ${endTime}`);
   
-        if (availableRooms.length > 0) {
-          alert(`Salas disponibles: ${availableRooms.join(', ')}`);          
-          navigate('/booking');
+      console.log("Checking room availability...");
+      Object.entries(rooms).forEach(([roomId, room]) => {
+        console.log(`Checking room: ${room.roomName}`);
+        
+        // Check if the room's start and end time overlaps with the selected time
+        const roomStartTime = new Date(`${date.toDateString()} ${room.startTime}`);
+        const roomEndTime = new Date(`${date.toDateString()} ${room.endTime}`);
+        
+        const isRoomTimeConflict = (roomStartTime <= userEndTime && roomEndTime >= userStartTime);
+        
+        const isBookingConflict = Object.values(bookings).some(booking => 
+          booking.room === room.roomName &&
+          ((new Date(`${date.toDateString()} ${booking.startTime}`) < userEndTime &&
+            new Date(`${date.toDateString()} ${booking.endTime}`) > userStartTime))
+        );
+  
+        const isAvailable = !isRoomTimeConflict && !isBookingConflict;
+  
+        if (isAvailable) {
+          console.log(`Room ${room.roomName} is available`);
+          availableRooms.push(room.roomName);
         } else {
-          alert('No rooms available for the selected time.');
+          console.log(`Room ${room.roomName} is not available`);
         }
+      });
+  
+      console.log("Available rooms:", availableRooms);
+  
+      if (availableRooms.length > 0) {
+        const message = `
+          Date: ${date.toLocaleDateString()}
+          Start Time: ${startTime}
+          End Time: ${endTime}
+          Available Rooms: ${availableRooms.join(', ')}
+        `;
+        alert(message);
+        
+        navigate('/booking', { 
+          state: { 
+            date: date.toISOString().split('T')[0], 
+            startTime, 
+            endTime, 
+            availableRooms 
+          } 
+        });
       } else {
-        alert('No rooms found.');
+        alert('No rooms available for the selected time.');
       }
     } catch (error) {
       console.error('Error finding rooms:', error);
-      alert('There was an error finding a room.');
+      alert(`There was an error finding available rooms: ${error.message}`);
     }
   };
 

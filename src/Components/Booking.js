@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { getDatabase, ref, get, push, child } from 'firebase/database';
-import Navbar from './Navbar';  // Asegúrate de que la ruta es correcta
+import { getDatabase, ref, get, push } from 'firebase/database';
+import { useLocation } from 'react-router-dom';
+import Navbar from './Navbar';
 import './Booking.css';
 
 const Booking = () => {
-  // Estados para manejar las salas disponibles, asistentes, etc.
-  const [availableRooms, setAvailableRooms] = useState([]);
   const [selectedRoom, setSelectedRoom] = useState('');
   const [attendees, setAttendees] = useState([]);
   const [emailMessage, setEmailMessage] = useState('');
@@ -13,57 +12,55 @@ const Booking = () => {
   const [availableCapacities, setAvailableCapacities] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
 
-  // Obtenemos las salas y usuarios desde Firebase
+  const location = useLocation();
+  const { date, startTime, endTime, availableRooms } = location.state || {};
+
   useEffect(() => {
-    const fetchRoomsAndUsers = async () => {
-      const db = getDatabase();
-      const dbRef = ref(db);
+    console.log("Date:", date);
+    console.log("Start time:", startTime);
+    console.log("End time:", endTime);
+    console.log("Available rooms:", availableRooms);
+    if (date && startTime && endTime && availableRooms) {
+      console.log("All required data is present");
+    } else {
+      console.error("Missing date, start time, end time, or available rooms");
+    }
+    fetchUsers();
+  }, [date, startTime, endTime, availableRooms]);
 
-      try {
-        // Obtener salas
-        const roomsSnapshot = await get(child(dbRef, 'meetingRooms'));
-        if (roomsSnapshot.exists()) {
-          const rooms = roomsSnapshot.val();
-          setAvailableRooms(Object.values(rooms));
-        }
+  const fetchUsers = async () => {
+    const db = getDatabase();
+    const usersRef = ref(db, 'users');
 
-        // Obtener usuarios
-        const usersSnapshot = await get(child(dbRef, 'users'));
-        if (usersSnapshot.exists()) {
-          const users = usersSnapshot.val();
-          setAllUsers(Object.values(users).map(user => user.email));
-        }
-      } catch (error) {
-        console.error('Error fetching rooms and users:', error);
+    try {
+      const usersSnapshot = await get(usersRef);
+      if (usersSnapshot.exists()) {
+        const users = usersSnapshot.val();
+        setAllUsers(Object.values(users).map(user => user.email));
       }
-    };
-
-    fetchRoomsAndUsers();
-  }, []);
-
-  // Manejo de cambio en la sala seleccionada
-  const handleRoomChange = (roomName) => {
-    const selected = availableRooms.find(room => room.roomName === roomName);
-    if (selected) {
-      setSelectedRoom(roomName);
-      const capacity = selected.capacity; // Obtén la capacidad desde el objeto `selected`
-      
-      // Ajusta las capacidades desde 1 hasta la capacidad del room
-      setAvailableCapacities([...Array(capacity).keys()].map(i => i + 1));
-      setSelectedCapacity(1); // Establecer el valor inicial del capacity
-    
+    } catch (error) {
+      console.error('Error fetching users:', error);
     }
   };
-  
 
-  // Guardar la reserva (en este caso solo un ejemplo de estructura)
+  const handleRoomChange = (roomName) => {
+    const selected = availableRooms.find(room => room === roomName);
+    if (selected) {
+      setSelectedRoom(roomName);
+      // Aquí deberías obtener la capacidad de la sala seleccionada
+      // Por ahora, usaremos un valor fijo de 10 como ejemplo
+      const capacity = 10;
+      setAvailableCapacities([...Array(capacity).keys()].map(i => i + 1));
+      setSelectedCapacity(1);
+    }
+  };
+
   const handleBook = async () => {
     if (!selectedRoom) {
       alert('Please select a room');
       return;
     }
 
-    // Ejemplo de reserva
     const db = getDatabase();
     const bookingRef = ref(db, 'bookings');
     const newBooking = {
@@ -71,12 +68,15 @@ const Booking = () => {
       attendees: attendees,
       message: emailMessage,
       capacity: selectedCapacity,
-      // Más detalles como fecha, hora, asistencia, etc.
+      date: date,
+      startTime: startTime,
+      endTime: endTime,
     };
 
     try {
       await push(bookingRef, newBooking);
       alert('Room booked successfully');
+      // Aquí podrías redirigir al usuario o limpiar el formulario
     } catch (error) {
       console.error('Error saving booking:', error);
       alert('Error booking the room');
@@ -85,16 +85,18 @@ const Booking = () => {
 
   return (
     <div className="booking-container">
-      {/* Incluimos el componente Navbar */}
       <Navbar />
       
       <div className="booking-body">
-               
+        <h2>Book a Room</h2>
+        <p>Date: {date ? new Date(date).toLocaleDateString() : 'Not selected'}</p>
+        <p>Time: {startTime && endTime ? `${startTime} - ${endTime}` : 'Not selected'}</p>
+        
         <select onChange={(e) => handleRoomChange(e.target.value)} value={selectedRoom}>
           <option value="">Select a room</option>
-          {availableRooms.map(room => (
-            <option key={room.roomName} value={room.roomName}>
-              {room.roomName}
+          {availableRooms && availableRooms.map(room => (
+            <option key={room} value={room}>
+              {room}
             </option>
           ))}
         </select>
@@ -116,11 +118,10 @@ const Booking = () => {
 
         <label>Select number of attendees</label>
         <select onChange={(e) => setSelectedCapacity(Number(e.target.value))} value={selectedCapacity}>
-  {availableCapacities.map(cap => (
-    <option key={cap} value={cap}>{cap}</option>
-  ))}
-</select>
-
+          {availableCapacities.map(cap => (
+            <option key={cap} value={cap}>{cap}</option>
+          ))}
+        </select>
 
         <label>Email Message</label>
         <textarea
