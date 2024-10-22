@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getDatabase, ref, get, push } from 'firebase/database';
 import { useLocation } from 'react-router-dom';
+import { getAuth } from 'firebase/auth';
 import Navbar from './Navbar';
 import './Booking.css';
 
@@ -14,6 +15,9 @@ const Booking = () => {
 
   const location = useLocation();
   const { date, startTime, endTime, availableRooms } = location.state || {};
+
+  const auth = getAuth();
+  const user = auth.currentUser;
 
   useEffect(() => {
     console.log("Date:", date);
@@ -60,6 +64,10 @@ const Booking = () => {
       alert('Please select a room');
       return;
     }
+    if (!user) {
+      alert('You must be logged in to book a room');
+      return;
+    }
 
     const db = getDatabase();
     const bookingRef = ref(db, 'bookings');
@@ -71,6 +79,7 @@ const Booking = () => {
       date: date,
       startTime: startTime,
       endTime: endTime,
+      userId: user.uid 
     };
 
     try {

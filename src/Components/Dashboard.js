@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { signOut, onAuthStateChanged } from 'firebase/auth';
 import { auth } from './firebaseConfig'; 
 import { useNavigate } from 'react-router-dom';
-import { getDatabase, ref, get, query, orderByChild, equalTo } from 'firebase/database';
+import { getDatabase, ref, get, query, orderByChild, equalTo, update } from 'firebase/database';
 import Calendar from 'react-calendar';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 import 'react-calendar/dist/Calendar.css';
 import './Dashboard.css';
 import Navbar from './Navbar'; 
@@ -14,50 +16,56 @@ const Dashboard = () => {
   const [date, setDate] = useState(new Date());
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
+  const [showPopup, setShowPopup] = useState(false);
+  const [selectedReservation, setSelectedReservation] = useState(null);
+  const [newDate, setNewDate] = useState(new Date());
+  const [newStartTime, setNewStartTime] = useState('');
+  const [newEndTime, setNewEndTime] = useState('');
+  const [availableRooms, setAvailableRooms] = useState([]);
+  const [newRoom, setNewRoom] = useState('');
 
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Escuchar los cambios en el estado de autenticación
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         setUser(user);
-        fetchReservations(user.uid); // Llamar a la función para obtener las reservas del usuario
+        fetchReservations();
       } else {
-        navigate('/login'); // Redirigir a login si no está autenticado
+        navigate('/login');
       }
     });
 
     return () => unsubscribe();
   }, [navigate]);
 
-  // Función para obtener las reservas del usuario autenticado
-  const fetchReservations = async (uid) => {
+  const fetchReservations = async () => {
     const db = getDatabase();
-    const reservationsRef = ref(db, `bookings/${uid}`); // Ruta a las reservas del usuario
-
+    const reservationsRef = ref(db, 'bookings');
+  
     try {
       const snapshot = await get(reservationsRef);
       if (snapshot.exists()) {
         const data = snapshot.val();
         
-        // Convertir el objeto de reservas en un array
-        const fetchedReservations = Object.keys(data).map(key => ({
-          id: key,
-          ...data[key],
+        const fetchedReservations = Object.entries(data).map(([bookingId, booking]) => ({
+          id: bookingId,
+          room: booking.room,
+          date: booking.date,
+          startTime: booking.startTime,
+          endTime: booking.endTime
         }));
-
-        setReservations(fetchedReservations); // Actualiza el estado con las reservas obtenidas
+  
+        setReservations(fetchedReservations);
       } else {
-        console.log('No se encontraron reservas para el usuario.');
-        setReservations([]); // Limpia las reservas si no hay datos
+        console.log('No se encontraron reservas.');
+        setReservations([]);
       }
     } catch (error) {
       console.error('Error al obtener las reservas:', error);
     }
   };
 
-  
   const handleSearch = async () => {
     const db = getDatabase();
     const roomsRef = ref(db, 'meetingRooms');
@@ -66,7 +74,6 @@ const Dashboard = () => {
     try {
       console.log("Fetching rooms and bookings...");
   
-      // Get all rooms
       const roomsSnapshot = await get(roomsRef);
       if (!roomsSnapshot.exists()) {
         console.log("No rooms found in the database");
@@ -76,7 +83,6 @@ const Dashboard = () => {
       const rooms = roomsSnapshot.val();
       console.log("Rooms:", rooms);
   
-      // Get bookings for the selected date
       const bookingsQuery = query(bookingsRef, orderByChild('date'), equalTo(date.toISOString().split('T')[0]));
       const bookingsSnapshot = await get(bookingsQuery);
       const bookings = bookingsSnapshot.val() || {};
@@ -90,7 +96,6 @@ const Dashboard = () => {
       Object.entries(rooms).forEach(([roomId, room]) => {
         console.log(`Checking room: ${room.roomName}`);
         
-        // Check if the room's start and end time overlaps with the selected time
         const roomStartTime = new Date(`${date.toDateString()} ${room.startTime}`);
         const roomEndTime = new Date(`${date.toDateString()} ${room.endTime}`);
         
@@ -140,6 +145,127 @@ const Dashboard = () => {
     }
   };
 
+  const handleEdit = async (reservation) => {
+    setSelectedReservation(reservation);
+    setNewDate(new Date(reservation.date + 'T00:00:00'));
+    setNewStartTime(reservation.startTime);
+    setNewEndTime(reservation.endTime);
+    setNewRoom(reservation.room);
+    
+    // Fetch available rooms
+    const rooms = await fetchAvailableRooms();
+    setAvailableRooms(rooms);
+    
+    setShowPopup(true);
+  };
+  
+  const fetchAvailableRooms = async () => {
+    const db = getDatabase();
+    const roomsRef = ref(db, 'meetingRooms');
+    
+    try {
+      const snapshot = await get(roomsRef);
+      if (snapshot.exists()) {
+        return Object.values(snapshot.val()).map(room => room.roomName);
+      }
+      return [];
+    } catch (error) {
+      console.error('Error fetching rooms:', error);
+      return [];
+    }
+  };
+  
+  const handleUpdateReservation = async () => {
+    const db = getDatabase();
+    const bookingsRef = ref(db, 'bookings');
+  
+    try {
+      const formattedDate = newDate.toLocaleDateString('en-CA');
+  
+      const confirmationMessage = `
+        Are you sure you want to update this reservation?
+        
+        New Room: ${newRoom}
+        New Date: ${formattedDate}
+        New Time: ${newStartTime} - ${newEndTime}
+        
+        Click OK to confirm or Cancel to abort.
+      `;
+  
+      if (window.confirm(confirmationMessage)) {
+        const availableRooms = await checkAvailability(newDate, newStartTime, newEndTime);
+        
+        if (availableRooms.includes(newRoom)) {
+          await update(ref(db, `bookings/${selectedReservation.id}`), {
+            room: newRoom,
+            date: formattedDate,
+            startTime: newStartTime,
+            endTime: newEndTime
+          });
+  
+          alert('Reservation updated successfully');
+          setShowPopup(false);
+          fetchReservations();
+        } else {
+          alert('The selected room is not available for this time');
+        }
+      } else {
+        console.log('Reservation update cancelled by user');
+      }
+    } catch (error) {
+      console.error('Error updating reservation:', error);
+      alert('Error updating reservation');
+    }
+  };
+  
+  // En el componente DatePicker, asegúrate de usar la zona horaria local
+  <DatePicker
+    selected={newDate}
+    onChange={(date) => setNewDate(date)}
+    dateFormat="yyyy-MM-dd"
+    timeZone="UTC"
+  />
+
+  const checkAvailability = async (date, startTime, endTime) => {
+    const db = getDatabase();
+    const roomsRef = ref(db, 'meetingRooms');
+    const bookingsRef = ref(db, 'bookings');
+  
+    try {
+      const [roomsSnapshot, bookingsSnapshot] = await Promise.all([
+        get(roomsRef),
+        get(query(bookingsRef, orderByChild('date'), equalTo(date.toISOString().split('T')[0])))
+      ]);
+  
+      const rooms = roomsSnapshot.val();
+      const bookings = bookingsSnapshot.val() || {};
+  
+      const userStartTime = new Date(`${date.toDateString()} ${startTime}`);
+      const userEndTime = new Date(`${date.toDateString()} ${endTime}`);
+  
+      const availableRooms = Object.entries(rooms).filter(([roomId, room]) => {
+        const roomStartTime = new Date(`${date.toDateString()} ${room.startTime}`);
+        const roomEndTime = new Date(`${date.toDateString()} ${room.endTime}`);
+        
+        const isRoomTimeConflict = (roomStartTime <= userEndTime && roomEndTime >= userStartTime);
+        
+        const isBookingConflict = Object.values(bookings).some(booking => 
+          booking.room === room.roomName &&
+          booking.id !== selectedReservation.id &&
+          ((new Date(`${date.toDateString()} ${booking.startTime}`) < userEndTime &&
+            new Date(`${date.toDateString()} ${booking.endTime}`) > userStartTime))
+        );
+  
+        return !isRoomTimeConflict && !isBookingConflict;
+      }).map(([_, room]) => room.roomName);
+  
+      return availableRooms;
+    } catch (error) {
+      console.error('Error checking availability:', error);
+      throw error;
+    }
+  };
+
   return (
     <div className="dashboard-container">
       <Navbar user={user} auth={auth} />
@@ -149,11 +275,12 @@ const Dashboard = () => {
         <h2>Overview</h2>
         <ul className="reservation-list">
           {reservations.length > 0 ? (
-            reservations.map((reservation, index) => (
+            reservations.map((reservation) => (
               <li key={reservation.id}>
-                <h3>{reservation.place}</h3>
-                <p>{reservation.date}</p>
-                <button>Edit</button>
+                <h3>{reservation.room}</h3>
+                <p>Date: {reservation.date}</p>
+                <p>Time: {reservation.startTime} - {reservation.endTime}</p>
+                <button onClick={() => handleEdit(reservation)}>Edit</button>
               </li>
             ))
           ) : (
@@ -182,6 +309,38 @@ const Dashboard = () => {
             <button onClick={handleSearch}>Search</button>
           </div>
         </div>
+
+        {showPopup && (
+          <div className="popup">
+            <h3>Edit Reservation</h3>
+            <select 
+              value={newRoom} 
+              onChange={(e) => setNewRoom(e.target.value)}
+            >
+              {availableRooms.map(room => (
+                <option key={room} value={room}>{room}</option>
+              ))}
+            </select>
+            <DatePicker
+              selected={newDate}
+              onChange={(date) => setNewDate(date)}
+              dateFormat="yyyy-MM-dd"
+              timeZone="UTC"
+            />
+            <input
+              type="time"
+              value={newStartTime}
+              onChange={(e) => setNewStartTime(e.target.value)}
+            />
+            <input
+              type="time"
+              value={newEndTime}
+              onChange={(e) => setNewEndTime(e.target.value)}
+            />
+            <button onClick={handleUpdateReservation}>Update Reservation</button>
+            <button onClick={() => setShowPopup(false)}>Cancel</button>
+          </div>
+        )}
       </div>
     </div>
   );
