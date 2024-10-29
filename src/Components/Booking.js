@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getDatabase, ref, get, push} from 'firebase/database';
+import { getDatabase, ref, get, query, orderByChild, equalTo, push } from "firebase/database";
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import Navbar from './Navbar';
@@ -13,6 +13,7 @@ const Booking = () => {
   const [availableCapacities, setAvailableCapacities] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
   const navigate = useNavigate();
+  const db = getDatabase();
 
   const location = useLocation();
   const { date, startTime, endTime, availableRooms } = location.state || {};
@@ -45,14 +46,33 @@ const Booking = () => {
     }
   };
 
-  const handleRoomChange = (roomName) => {
+  const handleRoomChange = async (roomName) => {
+    console.log("Sala seleccionada:", roomName);
     const selected = availableRooms.find(room => room === roomName);
     if (selected) {
       setSelectedRoom(roomName);
-      // Aquí deberías obtener la capacidad de la sala seleccionada      
-      const capacity = 10;
-      setAvailableCapacities([...Array(capacity).keys()].map(i => i + 1));
-      setSelectedCapacity(1);
+      
+      try {
+        // Crear una consulta para buscar la sala por nombre
+        const roomsRef = ref(db, 'meetingRooms');
+        const roomQuery = query(roomsRef, orderByChild('roomName'), equalTo(roomName));
+        
+        const snapshot = await get(roomQuery);
+        
+        if (snapshot.exists()) {
+          // Obtener el primer (y único) resultado
+          const roomData = Object.values(snapshot.val())[0];
+          console.log("Datos de la sala obtenidos:", roomData);
+          
+          const capacity = parseInt(roomData.capacity, 10);
+          setAvailableCapacities([...Array(capacity).keys()].map(i => i + 1));
+          setSelectedCapacity(1);
+        } else {
+          console.log("The room was not found.");
+        }
+      } catch (error) {
+        console.error("Error obtaining room data:", error);
+      }
     }
   };
 
