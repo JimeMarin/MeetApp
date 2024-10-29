@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { getDatabase, ref, get, push } from 'firebase/database';
-import { useLocation } from 'react-router-dom';
+import { getDatabase, ref, get, push} from 'firebase/database';
+import { useLocation, useNavigate } from 'react-router-dom';
+
 import Navbar from './Navbar';
 import './Booking.css';
 
@@ -11,6 +12,7 @@ const Booking = () => {
   const [selectedCapacity, setSelectedCapacity] = useState(1);
   const [availableCapacities, setAvailableCapacities] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
+  const navigate = useNavigate();
 
   const location = useLocation();
   const { date, startTime, endTime, availableRooms } = location.state || {};
@@ -47,13 +49,13 @@ const Booking = () => {
     const selected = availableRooms.find(room => room === roomName);
     if (selected) {
       setSelectedRoom(roomName);
-      // Aquí deberías obtener la capacidad de la sala seleccionada
-      // Por ahora, usaremos un valor fijo de 10 como ejemplo
+      // Aquí deberías obtener la capacidad de la sala seleccionada      
       const capacity = 10;
       setAvailableCapacities([...Array(capacity).keys()].map(i => i + 1));
       setSelectedCapacity(1);
     }
   };
+
 
   const handleBook = async () => {
     if (!selectedRoom) {
@@ -76,7 +78,7 @@ const Booking = () => {
     try {
       await push(bookingRef, newBooking);
       alert('Room booked successfully');
-      // Aquí podrías redirigir al usuario o limpiar el formulario
+      navigate('/dashboard');
     } catch (error) {
       console.error('Error saving booking:', error);
       alert('Error booking the room');
