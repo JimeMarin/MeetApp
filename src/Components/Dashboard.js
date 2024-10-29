@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { signOut, onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './firebaseConfig'; 
 import { useNavigate } from 'react-router-dom';
-import { getDatabase, ref, get, query, orderByChild, equalTo, update } from 'firebase/database';
+import { getDatabase, ref, get, query, orderByChild, equalTo, update, remove } from 'firebase/database';
 import Calendar from 'react-calendar';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -12,6 +12,7 @@ import Navbar from './Navbar';
 
 const Dashboard = () => {
   const [user, setUser] = useState(null);
+  const [newAttendees, setNewAttendees] = useState([]);
   const [reservations, setReservations] = useState([]);
   const [date, setDate] = useState(new Date());
   const [startTime, setStartTime] = useState('');
@@ -38,6 +39,14 @@ const Dashboard = () => {
 
     return () => unsubscribe();
   }, [navigate]);
+
+  // En el componente DatePicker, asegúrate de usar la zona horaria local
+  <DatePicker
+    selected={newDate}
+    onChange={(date) => setNewDate(date)}
+    dateFormat="yyyy-MM-dd"
+    timeZone="UTC"
+  />
 
   const fetchReservations = async () => {
     const db = getDatabase();
@@ -151,6 +160,7 @@ const Dashboard = () => {
     setNewStartTime(reservation.startTime);
     setNewEndTime(reservation.endTime);
     setNewRoom(reservation.room);
+    setNewAttendees(reservation.attendees || []);
     
     // Fetch available rooms
     const rooms = await fetchAvailableRooms();
@@ -193,21 +203,41 @@ const Dashboard = () => {
       `;
   
       if (window.confirm(confirmationMessage)) {
-        const availableRooms = await checkAvailability(newDate, newStartTime, newEndTime);
-        
-        if (availableRooms.includes(newRoom)) {
+        // Verificar si solo se están editando los asistentes
+        const isOnlyAttendeesChanged = 
+          selectedReservation.room === newRoom &&
+          selectedReservation.date === formattedDate &&
+          selectedReservation.startTime === newStartTime &&
+          selectedReservation.endTime === newEndTime;
+  
+        if (isOnlyAttendeesChanged) {
+          // Si solo se cambian los asistentes, actualizar directamente
           await update(ref(db, `bookings/${selectedReservation.id}`), {
-            room: newRoom,
-            date: formattedDate,
-            startTime: newStartTime,
-            endTime: newEndTime
+            attendees: newAttendees
           });
   
-          alert('Reservation updated successfully');
+          alert('Attendees updated successfully');
           setShowPopup(false);
           fetchReservations();
         } else {
-          alert('The selected room is not available for this time');
+          // Si se cambian otros campos, verificar disponibilidad
+          const availableRooms = await checkAvailability(newDate, newStartTime, newEndTime);
+          
+          if (availableRooms.includes(newRoom)) {
+            await update(ref(db, `bookings/${selectedReservation.id}`), {
+              room: newRoom,
+              date: formattedDate,
+              startTime: newStartTime,
+              endTime: newEndTime,
+              attendees: newAttendees
+            });
+  
+            alert('Reservation updated successfully');
+            setShowPopup(false);
+            fetchReservations();
+          } else {
+            alert('The selected room is not available for this time');
+          }
         }
       } else {
         console.log('Reservation update cancelled by user');
@@ -216,15 +246,24 @@ const Dashboard = () => {
       console.error('Error updating reservation:', error);
       alert('Error updating reservation');
     }
-  };
+  }
   
-  // En el componente DatePicker, asegúrate de usar la zona horaria local
-  <DatePicker
-    selected={newDate}
-    onChange={(date) => setNewDate(date)}
-    dateFormat="yyyy-MM-dd"
-    timeZone="UTC"
-  />
+  const handleCancelReservation = async () => {
+    if (window.confirm('Are you sure you want to cancel this reservation?')) {
+      const db = getDatabase();
+      const bookingRef = ref(db, `bookings/${selectedReservation.id}`);
+  
+      try {
+        await remove(bookingRef);
+        alert('Reservation cancelled successfully');
+        setShowPopup(false);
+        fetchReservations();
+      } catch (error) {
+        console.error('Error cancelling reservation:', error);
+        alert('Error cancelling reservation');
+      }
+    }
+  };
 
   const checkAvailability = async (date, startTime, endTime) => {
     const db = getDatabase();
@@ -337,8 +376,15 @@ const Dashboard = () => {
               value={newEndTime}
               onChange={(e) => setNewEndTime(e.target.value)}
             />
+            <input
+              type="text"
+              value={newAttendees.join(', ')}
+              onChange={(e) => setNewAttendees(e.target.value.split(', '))}
+              placeholder="Add attendees (comma separated)"
+            />
             <button onClick={handleUpdateReservation}>Update Reservation</button>
-            <button onClick={() => setShowPopup(false)}>Cancel</button>
+            <button onClick={handleCancelReservation}>Cancel Reservation</button>
+            <button onClick={() => setShowPopup(false)}>Close</button>
           </div>
         )}
       </div>
