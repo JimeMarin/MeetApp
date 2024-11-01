@@ -1,0 +1,76 @@
+.navbar {
+    display: flex;
+    align-items: center;
+    background-color: #1c1c1c; /* Cambia según tu diseño */
+    padding: 10px 20px;
+  }
+  
+  .navbar-logo img {
+    height: 40px; /* Ajusta el tamaño del logo */
+    cursor: pointer; /* Cambia el cursor al pasar sobre el logo */
+  }
+  
+  .navbar-profile {
+    position: relative;
+    margin-left: auto; /* Empuja el perfil hacia la derecha */
+  }
+  
+  .profile-info {
+    display: flex;
+    align-items: center;
+    cursor: pointer; /* Cambia el cursor al pasar sobre el nombre */
+  }
+  
+  .user-name {
+    color: white; /* Ajusta el color del texto */
+    margin-left: 10px; /* Espaciado entre la imagen de perfil y el nombre */
+  }
+  
+  .dropdown-menu {
+    position: absolute;
+    background: #333; /* Color de fondo del menú desplegable */
+    border-radius: 5px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    z-index: 1000; /* Asegúrate de que esté encima de otros elementos */
+  }
+  
+  .dropdown-item {
+    padding: 10px 15px;
+    color: white; /* Color del texto del menú */
+    background: transparent;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+  }
+  
+  .dropdown-item:hover {
+    background-color: #444; /* Color al pasar el ratón */
+  }
+  
+  .navbar-divider {
+    height: 1px;
+    background-color: #666; /* Color de la línea divisoria */
+    margin: 10px 0; /* Margen arriba y abajo */
+  }
+  
+  /* Estilos para el modal */
+  .modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000; /* Asegúrate de que esté encima de otros elementos */
+  }
+  
+  .modal-content {
+    background: white;
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  }
+  
