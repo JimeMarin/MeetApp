@@ -65,17 +65,39 @@ const AdminDash = () => {
 
   const handleNewUserCreation = async (e) => {
     e.preventDefault();
-    const { email, password } = newUserData;
+    const { firstName, lastName, email, role } = newUserData;
+    
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
-      const db = getDatabase();
-      const userRef = ref(db, 'users');
-      alert('User successfully created');
-      setShowUserForm(false);
+        // Crear usuario en Firebase Authentication
+        const userCredential = await createUserWithEmailAndPassword(auth, email, 'tempPassword123');
+        const uid = userCredential.user.uid;
+
+        // Generar contraseña estándar
+        const standardPassword = `${firstName[0]}${lastName[0]}${uid.slice(-3)}`;
+
+        // Actualizar la contraseña del usuario
+        await userCredential.user.updatePassword(standardPassword);
+
+        // Obtener referencia a la base de datos
+        const db = getDatabase();
+
+        // Crear entrada en la tabla 'users' de Realtime Database
+        await set(ref(db, 'users/' + uid), {
+            firstName,
+            lastName,
+            email,
+            role, // 'user' o 'admin', según lo seleccionado
+            isActive: true
+        });
+
+        alert(`User successfully created. Password: ${standardPassword}`);
+        setShowUserForm(false);
+        // Aquí puedes agregar lógica adicional, como resetear el formulario
     } catch (error) {
-      alert(`Error creating user: ${error.message}`);
+        console.error('Error creating the user', error);
+        alert(`Error creating the user: ${error.message}`);
     }
-  };
+};
 
   const handleNewRoomCreation = async (e) => {
     e.preventDefault();
