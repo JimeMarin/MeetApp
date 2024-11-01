@@ -1,23 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import './AdminNavbar.css';
-import { getAuth, signOut, createUserWithEmailAndPassword } from 'firebase/auth';
+import { getAuth, signOut, createUserWithEmailAndPassword, updateProfile, EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
 import { getDatabase, ref, push, set } from 'firebase/database';
 import { useNavigate } from 'react-router-dom';
 import Company_Logo from '../img/meetapp.png';
 
+
 const Navbar = () => {
   const navigate = useNavigate();
+  const [error, setError] = useState('');
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [userName, setUserName] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState('');
-  const [oldPassword, setOldPassword] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [newUserData, setNewUserData] = useState({
     firstName: '',
     lastName: '',
     email: '',
-    password: '',
+    role: ''
   });
   const [newRoomData, setNewRoomData] = useState({
     roomName: '',
@@ -43,42 +45,92 @@ const Navbar = () => {
     const auth = getAuth();
     try {
       await signOut(auth);
-      navigate('/login');
+      navigate('/adminlogin');
     } catch (error) {
       console.error("Error al cerrar sesión: ", error);
     }
   };
 
   const handleChangePassword = async () => {
+    setError('');
     const auth = getAuth();
     const user = auth.currentUser;
+
+    if (!user) {
+      setError("No hay usuario autenticado");
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      setError("La nueva contraseña debe tener al menos 8 caracteres");
+      return;
+    }
+
     try {
-      await user.updatePassword(newPassword);
-      alert('Contraseña cambiada exitosamente');
+      const credential = EmailAuthProvider.credential(
+        user.email,
+        currentPassword
+      );
+
+      await reauthenticateWithCredential(user, credential);
+      await updatePassword(user, newPassword);
+
+      console.log("Contraseña actualizada exitosamente");
       setIsModalOpen(false);
-    } catch (error) {
-      console.error('Error al cambiar la contraseña:', error);
-      alert('Error al cambiar la contraseña');
+      // Aquí puedes agregar lógica adicional, como mostrar un mensaje de éxito
+    } catch (err) {
+      if (err.code === 'auth/wrong-password') {
+        setError("La contraseña actual es incorrecta");
+      } else {
+        setError("Error al cambiar la contraseña: " + err.message);
+      }
     }
   };
 
+
   const handleNewUserCreation = async (e) => {
     e.preventDefault();
-    const { email, password, firstName, lastName } = newUserData;
+    const { firstName, lastName, email, role } = newUserData;
+
+    if (!firstName || !lastName || !email || !role) {
+        alert("Por favor, completa todos los campos.");
+        return;
+    }
+    console.log("Creando usuario...");
     try {
-      const auth = getAuth();
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const db = getDatabase();
-      const userRef = ref(db, `users/${userCredential.user.uid}`);
-      await set(userRef, {
-        firstName,
-        lastName,
-        email
-      });
-      alert('User successfully created');
-      setIsModalOpen(false);
+        const auth = getAuth();
+        const tempPassword = 'TempPass123!';
+        const userCredential = await createUserWithEmailAndPassword(auth, email, tempPassword);
+        const user = userCredential.user;
+        console.log('Usuario creado:', user);
+        const uid = user.uid;
+        const standardPassword = `${firstName[0]}${lastName}${uid.slice(-3)}`;
+        console.log('Contraseña standard:', standardPassword);
+        // Reautenticación con las credenciales temporales
+        const credential = EmailAuthProvider.credential(email, tempPassword);
+        await reauthenticateWithCredential(user, credential);
+
+        // Ahora puedes actualizar la contraseña
+        await updatePassword(user, standardPassword); // Esta línea es correcta
+        await updateProfile(user, {
+            displayName: `${firstName} ${lastName}`
+        });
+
+        const db = getDatabase();
+        await set(ref(db, 'users/' + uid), {
+            firstName,
+            lastName,
+            email,
+            role,
+            password: standardPassword,
+            isActive: true
+        });
+
+        alert(`Usuario creado exitosamente. Contraseña: ${standardPassword}`);
+        setIsModalOpen(false);
     } catch (error) {
-      alert(`Error creating user: ${error.message}`);
+        console.error('Error al crear usuario:', error);
+        alert(`Error al crear usuario: ${error.message}`);
     }
   };
 
@@ -103,6 +155,20 @@ const Navbar = () => {
       setNewRoomData({ ...newRoomData, [e.target.name]: e.target.value });
     }
   };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await handleChangePassword(currentPassword, newPassword);
+      // Mostrar mensaje de éxito
+      console.log("Contraseña cambiada con éxito");
+    } catch (error) {
+      // Mostrar mensaje de error
+      console.error(error.message);
+    }
+  };
+
+
 
   return (
     <nav className="navbar">
@@ -143,9 +209,9 @@ const Navbar = () => {
                 <h2>Change Password</h2>
                 <input
                   type="password"
-                  placeholder="Contraseña Anterior"
-                  value={oldPassword}
-                  onChange={(e) => setOldPassword(e.target.value)}
+                  placeholder="Contraseña Actual"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
                 />
                 <input
                   type="password"
@@ -153,7 +219,8 @@ const Navbar = () => {
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                 />
-                <button onClick={handleChangePassword}>Actualizar Contraseña</button>
+                {error && <p className="error">{error}</p>}
+                <button onClick={handleChangePassword}>Cambiar Contraseña</button>
               </>
             )}
             {modalType === 'newUser' && (
@@ -163,7 +230,11 @@ const Navbar = () => {
                   <input type="text" name="firstName" placeholder="First Name" onChange={handleInputChange} required />
                   <input type="text" name="lastName" placeholder="Last Name" onChange={handleInputChange} required />
                   <input type="email" name="email" placeholder="Email" onChange={handleInputChange} required />
-                  <input type="password" name="password" placeholder="Password" onChange={handleInputChange} required />
+                  <select name="role" onChange={handleInputChange} required>
+                    <option value="">Select Role</option>
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                  </select>
                   <button type="submit">Create User</button>
                 </form>
               </>
@@ -180,7 +251,7 @@ const Navbar = () => {
                 </form>
               </>
             )}
-            <button onClick={() => setIsModalOpen(false)}>Cancelar</button>
+            <button onClick={() => setIsModalOpen(false)}>Close</button>
           </div>
         </div>
       )}

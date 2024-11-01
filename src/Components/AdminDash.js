@@ -1,34 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { signOut, onAuthStateChanged, createUserWithEmailAndPassword, getAuth } from 'firebase/auth';
+import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './firebaseConfig';
-import { getDatabase, ref, push, set, onValue, remove, query, orderByChild, equalTo, get } from 'firebase/database';
+import { getDatabase, ref, onValue, remove, query, orderByChild, equalTo, get } from 'firebase/database';
 import { useNavigate } from 'react-router-dom';
 import 'react-calendar/dist/Calendar.css';
 import './Dashboard.css';
 import Navbar from './AdminNavbar';
-import meetapp from '../img/meetapp.png';
 
 const AdminDash = () => {
   const [user, setUser] = useState(null);
-  const [showUserForm, setShowUserForm] = useState(false);
-  const [showRoomForm, setShowRoomForm] = useState(false);
+  
   const [users, setUsers] = useState([]);
   const [rooms, setRooms] = useState([]);
-  const [newUserData, setNewUserData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    password: '',
-  });
-  const [newRoomData, setNewRoomData] = useState({
-    roomName: '',
-    capacity: '',
-    startTime: '',
-    endTime: ''
-  });
   const [emailToDelete, setEmailToDelete] = useState('');
-  const [isConfirmPopupVisible, setIsConfirmPopupVisible] = useState(false);
-  const [selectedUserId, setSelectedUserId] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -63,46 +47,12 @@ const AdminDash = () => {
     return () => unsubscribe();
   }, [navigate]);
 
-  const handleNewUserCreation = async (e) => {
-    e.preventDefault();
-    const { email, password } = newUserData;
-    try {
-      await createUserWithEmailAndPassword(auth, email, password);
-      const db = getDatabase();
-      const userRef = ref(db, 'users');
-      alert('User successfully created');
-      setShowUserForm(false);
-    } catch (error) {
-      alert(`Error creating user: ${error.message}`);
-    }
-  };
-
-  const handleNewRoomCreation = async (e) => {
-    e.preventDefault();
-    try {
-      const db = getDatabase();
-      const roomRef = ref(db, 'meetingRooms');
-      const newRoomRef = push(roomRef);
-      await set(newRoomRef, {
-        roomName: newRoomData.roomName,
-        capacity: newRoomData.capacity,
-        startTime: newRoomData.startTime,
-        endTime: newRoomData.endTime
-      });
-      alert(`Room created: ${newRoomData.roomName}`);
-      setShowRoomForm(false);
-    } catch (error) {
-      alert(`Error creating room: ${error.message}`);
-    }
-  };
-
   const handleSearchAndDeleteEmail = async (e) => {
     e.preventDefault();
     console.log("Searching for email:", emailToDelete);
     const db = getDatabase();
     const usersRef = ref(db, 'users');
     const emailQuery = query(usersRef, orderByChild('email'), equalTo(emailToDelete));
-
     try {
       const snapshot = await get(emailQuery);
       const data = snapshot.val();
@@ -141,14 +91,6 @@ const AdminDash = () => {
       .catch((error) => alert(`Error deleting room: ${error.message}`));
   };
 
-  const handleInputChange = (e) => {
-    setNewUserData({ ...newUserData, [e.target.name]: e.target.value });
-  };
-
-  const handleRoomInputChange = (e) => {
-    setNewRoomData({ ...newRoomData, [e.target.name]: e.target.value });
-  };
-
   return (
     <div className="dashboard-container">
       <Navbar user={user} auth={auth} />
@@ -185,44 +127,6 @@ const AdminDash = () => {
           ))}
         </ul>
       </div>
-      {showUserForm && (
-        <div className="popup-form">
-          <div className="popup-content">
-            <h2>Create New User</h2>
-            <form onSubmit={handleNewUserCreation}>
-              <label>First Name</label>
-              <input type="text" name="firstName" value={newUserData.firstName} onChange={handleInputChange} required />
-              <label>Last Name</label>
-              <input type="text" name="lastName" value={newUserData.lastName} onChange={handleInputChange} required />
-              <label>Email</label>
-              <input type="email" name="email" value={newUserData.email} onChange={handleInputChange} required />
-              <label>Password</label>
-              <input type="password" name="password" value={newUserData.password} onChange={handleInputChange} required />
-              <button type="submit">Register</button>
-              <button type="button" onClick={() => setShowUserForm(false)}>Cancel</button>
-            </form>
-          </div>
-        </div>
-      )}
-      {showRoomForm && (
-        <div className="popup-form">
-          <div className="popup-content">
-            <h2>Create New Meeting Room</h2>
-            <form onSubmit={handleNewRoomCreation}>
-              <label>Room Name</label>
-              <input type="text" name="roomName" value={newRoomData.roomName} onChange={handleRoomInputChange} required />
-              <label>Capacity</label>
-              <input type="number" name="capacity" value={newRoomData.capacity} onChange={handleRoomInputChange} required />
-              <label>Start Time</label>
-              <input type="time" name="startTime" value={newRoomData.startTime} onChange={handleRoomInputChange} required />
-              <label>End Time</label>
-              <input type="time" name="endTime" value={newRoomData.endTime} onChange={handleRoomInputChange} required />
-              <button type="submit">Create Room</button>
-              <button type="button" onClick={() => setShowRoomForm(false)}>Cancel</button>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
