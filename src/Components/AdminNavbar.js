@@ -1,17 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import './AdminNavbar.css';
-import { getAuth, signOut, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { getAuth, signOut, createUserWithEmailAndPassword, updateProfile, EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
 import { getDatabase, ref, push, set } from 'firebase/database';
 import { useNavigate } from 'react-router-dom';
 import Company_Logo from '../img/meetapp.png';
 
+
 const Navbar = () => {
   const navigate = useNavigate();
+  const [error, setError] = useState('');
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [userName, setUserName] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState('');
-  const [oldPassword, setOldPassword] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [newUserData, setNewUserData] = useState({
     firstName: '',
@@ -50,79 +52,85 @@ const Navbar = () => {
   };
 
   const handleChangePassword = async () => {
+    setError('');
     const auth = getAuth();
     const user = auth.currentUser;
-    
+
     if (!user) {
-      alert('No hay usuario autenticado. Por favor, inicia sesión nuevamente.');
-      // Opcionalmente, redirige al usuario a la página de inicio de sesión
-      // navigate('/login');
+      setError("No hay usuario autenticado");
       return;
     }
-  
-    if (!newPassword) {
-      alert('Por favor, ingresa una nueva contraseña.');
+
+    if (newPassword.length < 8) {
+      setError("La nueva contraseña debe tener al menos 8 caracteres");
       return;
     }
-  
+
     try {
-      await user.updatePassword(newPassword);
-      alert('Contraseña cambiada exitosamente');
-      setNewPassword('');
+      const credential = EmailAuthProvider.credential(
+        user.email,
+        currentPassword
+      );
+
+      await reauthenticateWithCredential(user, credential);
+      await updatePassword(user, newPassword);
+
+      console.log("Contraseña actualizada exitosamente");
       setIsModalOpen(false);
-    } catch (error) {
-      console.error('Error al cambiar la contraseña:', error);
-      let errorMessage = 'Error al cambiar la contraseña';
-      
-      if (error.code === 'auth/requires-recent-login') {
-        errorMessage = 'Por seguridad, debes volver a iniciar sesión antes de cambiar tu contraseña.';
-        // Aquí podrías implementar una lógica para cerrar sesión y redirigir al usuario a la página de inicio de sesión
-        // handleLogout();
-      } else if (error.code === 'auth/weak-password') {
-        errorMessage = 'La contraseña es demasiado débil. Debe tener al menos 6 caracteres.';
+      // Aquí puedes agregar lógica adicional, como mostrar un mensaje de éxito
+    } catch (err) {
+      if (err.code === 'auth/wrong-password') {
+        setError("La contraseña actual es incorrecta");
+      } else {
+        setError("Error al cambiar la contraseña: " + err.message);
       }
-      
-      alert(errorMessage);
     }
   };
+
 
   const handleNewUserCreation = async (e) => {
     e.preventDefault();
     const { firstName, lastName, email, role } = newUserData;
-    
+
     if (!firstName || !lastName || !email || !role) {
-      alert("Por favor, completa todos los campos.");
-      return;
+        alert("Por favor, completa todos los campos.");
+        return;
     }
-
+    console.log("Creando usuario...");
     try {
-      const auth = getAuth();
-      const tempPassword = 'TempPass123!';
-      const userCredential = await createUserWithEmailAndPassword(auth, email, tempPassword);
-      const user = userCredential.user;
+        const auth = getAuth();
+        const tempPassword = 'TempPass123!';
+        const userCredential = await createUserWithEmailAndPassword(auth, email, tempPassword);
+        const user = userCredential.user;
+        console.log('Usuario creado:', user);
+        const uid = user.uid;
+        const standardPassword = `${firstName[0]}${lastName}${uid.slice(-3)}`;
+        console.log('Contraseña standard:', standardPassword);
+        // Reautenticación con las credenciales temporales
+        const credential = EmailAuthProvider.credential(email, tempPassword);
+        await reauthenticateWithCredential(user, credential);
 
-      const uid = user.uid;
-      const standardPassword = `${firstName[0]}${lastName[0]}${uid.slice(-3)}`;
+        // Ahora puedes actualizar la contraseña
+        await updatePassword(user, standardPassword); // Esta línea es correcta
+        await updateProfile(user, {
+            displayName: `${firstName} ${lastName}`
+        });
 
-      await user.updatePassword(standardPassword);
-      await updateProfile(user, {
-        displayName: `${firstName} ${lastName}`
-      });
+        const db = getDatabase();
+        await set(ref(db, 'users/' + uid), {
+            firstName,
+            lastName,
+            email,
+            role,
+            password: standardPassword,
+            isActive: true
+        });
 
-      const db = getDatabase();
-      await set(ref(db, 'users/' + uid), {
-        firstName,
-        lastName,
-        email,
-        role,
-        isActive: true
-      });
-
-      alert(`Usuario creado exitosamente. Contraseña: ${standardPassword}`);
-      setIsModalOpen(false);
+        alert(`Usuario creado exitosamente. Contraseña: ${standardPassword}`);
+        setIsModalOpen(false);
     } catch (error) {
-      console.error('Error al crear usuario:', error);
-      alert(`Error al crear usuario: ${error.message}`);
+        console.error('Error al crear usuario:', error);
+        alert(`Error al crear usuario: ${error.message}`);
     }
   };
 
@@ -147,6 +155,20 @@ const Navbar = () => {
       setNewRoomData({ ...newRoomData, [e.target.name]: e.target.value });
     }
   };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await handleChangePassword(currentPassword, newPassword);
+      // Mostrar mensaje de éxito
+      console.log("Contraseña cambiada con éxito");
+    } catch (error) {
+      // Mostrar mensaje de error
+      console.error(error.message);
+    }
+  };
+
+
 
   return (
     <nav className="navbar">
@@ -182,18 +204,25 @@ const Navbar = () => {
       {isModalOpen && (
         <div className="modal">
           <div className="modal-content">
-          {modalType === 'changePassword' && (
-            <>
-              <h2>Change Password</h2>
-              <input
-                type="password"
-                placeholder="Nueva Contraseña"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-              />
-              <button onClick={handleChangePassword}>Cambiar Contraseña</button>
-            </>
-          )}
+            {modalType === 'changePassword' && (
+              <>
+                <h2>Change Password</h2>
+                <input
+                  type="password"
+                  placeholder="Contraseña Actual"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                />
+                <input
+                  type="password"
+                  placeholder="Nueva Contraseña"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                />
+                {error && <p className="error">{error}</p>}
+                <button onClick={handleChangePassword}>Cambiar Contraseña</button>
+              </>
+            )}
             {modalType === 'newUser' && (
               <>
                 <h2>Create New User</h2>

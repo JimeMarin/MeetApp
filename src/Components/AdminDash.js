@@ -9,6 +9,7 @@ import Navbar from './AdminNavbar';
 
 const AdminDash = () => {
   const [user, setUser] = useState(null);
+  
   const [users, setUsers] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [emailToDelete, setEmailToDelete] = useState('');

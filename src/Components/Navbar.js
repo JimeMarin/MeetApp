@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './Navbar.css';
-import { getAuth, signOut } from 'firebase/auth'; // Asegúrate de importar Firebase Authentication
+import { getAuth, signOut, updatePassword } from 'firebase/auth'; // Asegúrate de importar Firebase Authentication
 import { useNavigate } from 'react-router-dom'; // Importa useNavigate
 import Company_Logo from '../img/meetapp.png';
 
