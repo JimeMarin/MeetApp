@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, getAuth } from 'firebase/auth';
 import { auth } from './firebaseConfig';
 import { getDatabase, ref, onValue, remove, query, orderByChild, equalTo, get } from 'firebase/database';
 import { useNavigate } from 'react-router-dom';
@@ -74,14 +74,27 @@ const AdminDash = () => {
   }
 
   const handleDeleteUser = (userId) => {
+    const auth = getAuth();
     const db = getDatabase();
-    const userRef = ref(db, `users/${userId}`);
-    remove(userRef)
-      .then(() => {
-        alert('User deleted successfully');
-      })
-      .catch((error) => alert(`Error deleting user: ${error.message}`));
-  }
+  
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        // User is signed in
+        const userRef = ref(db, `users/${userId}`);
+        remove(userRef)
+          .then(() => {
+            alert('User deleted successfully');
+          })
+          .catch((error) => {
+            console.error("Error deleting user:", error);
+            alert(`Error deleting user: ${error.message}`);
+          });
+      } else {
+        // User is signed out
+        alert("You must be signed in to delete users");
+      }
+    });
+  };
 
   const handleDeleteRoom = (roomId) => {
     const db = getDatabase();

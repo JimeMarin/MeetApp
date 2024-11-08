@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { signInWithEmailAndPassword, sendPasswordResetEmail, setPersistence, browserSessionPersistence, browserLocalPersistence } from 'firebase/auth';
 import { auth } from './firebaseConfig'; 
+import { getDatabase, ref, get } from 'firebase/database';
 import { useNavigate } from 'react-router-dom';
 import Company_Logo from '../img/meetapp.png';
 import './Login.css';
+import AdminDash from './AdminDash.js';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -28,7 +30,8 @@ const Login = () => {
       await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
       
       // Iniciar sesión
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
       
       // Manejar "Remember me"
       if (rememberMe) {
@@ -42,9 +45,32 @@ const Login = () => {
         setEmail('');
       }
       setPassword('');
-      navigate('/dashboard');           
+
+      const db = getDatabase();
+      const userRef = ref(db, `users/${user.uid}`);
+      const snapshot = await get(userRef);
+      
+      if (snapshot.exists()) {
+        const userData = snapshot.val();
+
+        // Redirección basada en el rol del usuario
+        if (userData.role === 'admin') {
+            navigate('/AdminDash'); // Redirigir al dashboard de empleados
+        } else if (userData.role === 'user') {
+            navigate('/Dashboard');
+          } else {
+            alert('Acceso denegado. No tienes permiso para acceder a esta área.');
+            await auth.signOut(); // Deslogar si no es un rol válido
+            navigate('/'); // Redirigir a la página inicial
+        }
+      } else {
+          alert('Usuario no encontrado.');
+          await auth.signOut(); // Deslogar si no se encuentra el usuario
+          navigate('/'); // Redirigir a la página inicial
+      }
     } catch (error) {      
-      alert ('Invalid email or password');
+      console.error('Inicio de sesión fallido:', error);
+      alert('Correo electrónico o contraseña inválidos');
     }
   };
 

@@ -121,8 +121,7 @@ const Navbar = () => {
             firstName,
             lastName,
             email,
-            role,
-            password: standardPassword,
+            role,            
             isActive: true
         });
 
