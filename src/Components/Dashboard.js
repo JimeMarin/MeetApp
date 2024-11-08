@@ -4,6 +4,7 @@ import { auth } from './firebaseConfig';
 import { useNavigate } from 'react-router-dom';
 import { getDatabase, ref, get, query, orderByChild, equalTo, update, remove } from 'firebase/database';
 import Calendar from 'react-calendar';
+import { sendEmails } from './SendEmail'; 
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import 'react-calendar/dist/Calendar.css';
@@ -254,8 +255,17 @@ const Dashboard = () => {
       const bookingRef = ref(db, `bookings/${selectedReservation.id}`);
   
       try {
+        // Obtener los datos completos de la reserva antes de eliminarla
+        const snapshot = await get(bookingRef);
+        const bookingData = snapshot.val();
+  
+        // Eliminar la reserva
         await remove(bookingRef);
-        alert('Reservation cancelled successfully');
+  
+        // Enviar correos electrónicos de cancelación
+        await sendEmails(bookingData, true);
+  
+        alert('Reservation cancelled successfully and notifications sent');
         setShowPopup(false);
         fetchReservations();
       } catch (error) {

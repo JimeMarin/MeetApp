@@ -3,6 +3,7 @@ import { getDatabase, ref, get, query, orderByChild, equalTo, push } from "fireb
 import { useLocation, useNavigate } from 'react-router-dom';
 import emailjs from '@emailjs/browser';
 import { getCurrentUser } from './AuthUtils';
+import { sendEmails } from './SendEmail';
 import Navbar from './Navbar';
 import './Booking.css';
 
@@ -104,7 +105,7 @@ const Booking = () => {
       attendees: attendees,
       message: emailMessage,
       capacity: selectedCapacity,
-      date: date,
+      date: date, // Asegúrate de que 'date' esté en formato YYYY-MM-DD
       startTime: startTime,
       endTime: endTime,
     };
@@ -114,15 +115,20 @@ const Booking = () => {
       await push(bookingRef, newBooking);
       console.log("Booking saved successfully");
       alert('Room booked successfully');
-
+  
       // Enviar correos electrónicos si hay asistentes
       if (attendees.length > 0) {
         console.log("Attempting to send emails to:", attendees);
-        await sendEmails(newBooking);
+        const currentUser = getCurrentUser();
+        await sendEmails({
+          ...newBooking,
+          userName: currentUser.name,
+          userEmail: currentUser.email
+        });
       } else {
         console.log("No attendees, skipping email send");
-      }  
-
+      }
+  
       navigate('/dashboard');
     } catch (error) {
       console.error('Error saving booking:', error);
@@ -130,45 +136,54 @@ const Booking = () => {
     }
   };
 
-  const sendEmails = async (booking) => {
-    console.log("sendEmails called. Attendees:", booking.attendees);
-    const currentUser = getCurrentUser();
+  // const sendEmails = async (booking, isCancellation = false) => {
+  //   console.log("sendEmails called. Attendees:", booking.attendees);
+  //   const currentUser = getCurrentUser();
     
-    if (!currentUser) {
-      console.error('No user is currently logged in');
-      return;
-    }
+  //   if (!currentUser) {
+  //     console.error('No user is currently logged in');
+  //     return;
+  //   }
     
-    console.log('Current user:', currentUser);
-    console.log('Booking details:', booking);
+  //   console.log('Current user:', currentUser);
+  //   console.log('Booking details:', booking);
   
-    const templateParams = {
-      from_name: currentUser.name || 'Unknown User',
-      from_email: currentUser.email,
-      to_email: booking.attendees.join(', '),
-      subject: `Room Booking: ${booking.room}`,
-      message: booking.message, // Este es el mensaje que el usuario ingresó
-      room: booking.room,
-      date: new Date(booking.date).toLocaleDateString(),
-      start_time: booking.startTime,
-      end_time: booking.endTime, 
-    };
-    console.log('Email template params:', templateParams);
+  //   const subject = isCancellation 
+  //     ? `Cancellation: Room Booking for ${booking.room}`
+  //     : `Room Booking: ${booking.room}`;
   
-    try {
-      console.log("Attempting to send email with EmailJS");
-      const result = await emailjs.send(
-        'service_ufvxwq5',
-        'template_vzpjouz',
-        templateParams,
-        'p1yL7ZtB9h0RV17-X'
-      );
-      console.log('Email sent successfully:', result.text);
-      console.log('Email status:', result.status);
-    } catch (error) {
-      console.error('Error sending email:', error);
-    }
-  };
+  //   const message = isCancellation
+  //     ? `Your booking for ${booking.room} on ${new Date(booking.date).toLocaleDateString()} has been cancelled.`
+  //     : booking.message;
+  
+  //   const templateParams = {
+  //     from_name: currentUser.name || 'Unknown User',
+  //     from_email: currentUser.email,
+  //     to_email: booking.attendees.join(', '),
+  //     subject: subject,
+  //     message: message,
+  //     room: booking.room,
+  //     date: new Date(booking.date).toLocaleDateString(),
+  //     start_time: booking.startTime,
+  //     end_time: booking.endTime, 
+  //   };
+  //   console.log('Email template params:', templateParams);
+  
+  //   try {
+  //     console.log("Attempting to send email with EmailJS");
+  //     const result = await emailjs.send(
+  //       'service_ufvxwq5',
+  //       'template_vzpjouz',
+  //       templateParams,
+  //       'p1yL7ZtB9h0RV17-X'
+  //     );
+  //     console.log('Email sent successfully:', result.text);
+  //     console.log('Email status:', result.status);
+  //   } catch (error) {
+  //     console.error('Error sending email:', error);
+  //   }
+  // };
+  
 
   const addAttendee = () => {
     if (newAttendee.trim() !== '' && !attendees.includes(newAttendee.trim())) {
