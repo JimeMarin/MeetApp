@@ -19,6 +19,8 @@ const Booking = () => {
   const db = getDatabase();
   const location = useLocation();
   const { date, startTime, endTime, availableRooms } = location.state || {};
+  const [ContactFacilitiesChecked, setContactFacilitiesChecked] = useState(false);
+  const [ContactITChecked, setContactITChecked] = useState(false);
   
 
   useEffect(() => {
@@ -184,11 +186,43 @@ const Booking = () => {
   //   }
   // };
   
-
   const addAttendee = () => {
     if (newAttendee.trim() !== '' && !attendees.includes(newAttendee.trim())) {
       setAttendees([...attendees, newAttendee.trim()]);
       setNewAttendee('');
+    }
+  };
+
+  
+  const handleContactFacilities = async (checked) => {
+    setContactFacilitiesChecked(checked);
+     if (checked) {
+      const facilitiesBooking = {
+        room: selectedRoom,
+        attendees: ['j.marinp@outlook.com'],
+        message: 'A user has requested facilities support for their room booking.',
+        capacity: selectedCapacity,
+        date: date,
+        startTime: startTime,
+        endTime: endTime
+      };
+      await sendEmails(facilitiesBooking);
+    }
+  };
+
+  const handleContactIT = async (checked) => {
+    setContactITChecked(checked);
+    if (checked) {
+      const ITBooking = {
+        room: selectedRoom,
+        attendees: ['jimemarinp@gmail.com'],
+        message: 'A user has requested IT support for their room booking.',
+        capacity: selectedCapacity,
+        date: date,
+        startTime: startTime,
+        endTime: endTime
+      };
+      await sendEmails(ITBooking);
     }
   };
 
@@ -199,8 +233,7 @@ const Booking = () => {
       <div className="booking-body">
         <h2>Book a Room</h2>
         <p>Date: {date ? new Date(date).toLocaleDateString() : 'Not selected'}</p>
-        <p>Time: {startTime && endTime ? `${startTime} - ${endTime}` : 'Not selected'}</p>
-        
+        <p>Time: {startTime && endTime ? `${startTime} - ${endTime}` : 'Not selected'}</p>        
         <select onChange={(e) => handleRoomChange(e.target.value)} value={selectedRoom}>
           <option value="">Select a room</option>
           {availableRooms && availableRooms.map(room => (
@@ -222,32 +255,14 @@ const Booking = () => {
               placeholder="Add attendees (optional)"
               list="attendees-list"
             />
-            {/* <button type="button" onClick={addAttendee}>Add</button> */}
+            
           </div>
           <datalist id="attendees-list">
             {allUsers.map(user => (
               <option key={user} value={user} />
             ))}
           </datalist>
-        </div>
-  
-        {/* { <div>
-          <h3>Current Attendees:</h3>
-          {attendees.length > 0 ? (
-            <ul>
-              {attendees.map((attendee, index) => (
-                <li key={index}>
-                  {attendee}
-                  <button onClick={() => setAttendees(attendees.filter((_, i) => i !== index))}>
-                    Remove
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p>No attendees added yet.</p>
-          )}
-        </div> } */}
+        </div>  
   
         <label>Select number of attendees</label>
         <select onChange={(e) => setSelectedCapacity(Number(e.target.value))} value={selectedCapacity}>
@@ -262,7 +277,29 @@ const Booking = () => {
           onChange={(e) => setEmailMessage(e.target.value)}
           placeholder="Message to attendees"
         />
-  
+        <div>
+          <label>On the day of the meeting I need assistance from:</label>
+          <div>
+            <input
+              type="checkbox"
+              id="Facilities"
+              name="Facilities"
+              checked={ContactFacilitiesChecked}
+              onChange={(e) => handleContactFacilities(e.target.checked)}
+            />
+            <label htmlFor="Facilities">Facilities</label>
+          </div>
+          <div>
+            <input
+              type="checkbox"
+              id="IT"
+              name="IT"
+              checked={ContactITChecked}
+              onChange={(e) => handleContactIT(e.target.checked)}
+            />
+            <label htmlFor="IT">IT</label>
+          </div>
+        </div>
         <button onClick={handleBook}>Book</button>
       </div>
     </div>

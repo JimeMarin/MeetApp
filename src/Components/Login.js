@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { signInWithEmailAndPassword, sendPasswordResetEmail, setPersistence, browserSessionPersistence, browserLocalPersistence } from 'firebase/auth';
-import { auth } from './firebaseConfig'; 
+import { sendPasswordResetEmail } from 'firebase/auth';
+import { auth, signInWithEmailAndPassword, setPersistence, browserLocalPersistence, browserSessionPersistence } from './firebaseConfig'; 
 import { getDatabase, ref, get } from 'firebase/database';
 import { useNavigate } from 'react-router-dom';
 import Company_Logo from '../img/meetapp.png';
@@ -80,6 +80,9 @@ const Login = () => {
     if (!isChecked) {
       localStorage.removeItem('rememberedEmail');
     }
+    else{
+      localStorage.setItem('rememberedEmail', email);
+    }
   };
 
   const handleForgotPassword = async () => {
@@ -119,6 +122,7 @@ const Login = () => {
               id="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              autoComplete="username"
               required
             />
           </div>
@@ -129,6 +133,7 @@ const Login = () => {
               id="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
               required
             />
           </div>

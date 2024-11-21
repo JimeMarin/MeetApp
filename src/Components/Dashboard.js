@@ -265,6 +265,25 @@ const Dashboard = () => {
         // Enviar correos electrónicos de cancelación
         await sendEmails(bookingData, true);
   
+        if (bookingData.contactFacilitiesChecked) {
+          const facilitiesBooking = {
+            attendees: ['j.marinp@outlook.com'],            
+            message: 'A booking that required facilities support has been cancelled.'
+          };
+          await sendEmails(facilitiesBooking);
+        }
+
+        if (bookingData.contactITChecked) {
+          const itBooking = {
+            attendees: ['jimemarinp@gmail.com'],
+            date: date,
+            startTime: startTime,
+            endTime: endTime,
+            message: 'A booking that required IT support has been cancelled.'
+          };
+          await sendEmails(itBooking);
+        }
+
         alert('Reservation cancelled successfully and notifications sent');
         setShowPopup(false);
         fetchReservations();
