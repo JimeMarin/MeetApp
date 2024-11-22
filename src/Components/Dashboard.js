@@ -106,10 +106,15 @@ const Dashboard = () => {
       Object.entries(rooms).forEach(([roomId, room]) => {
         console.log(`Checking room: ${room.roomName}`);
         
-        const roomStartTime = new Date(`${date.toDateString()} ${room.startTime}`);
-        const roomEndTime = new Date(`${date.toDateString()} ${room.endTime}`);
+        if (!room.isAvailable) {
+          console.log(`Room ${room.roomName} is not available (isAvailable: false)`);
+          return;
+        }
+  
+        const roomOpeningTime = new Date(`${date.toDateString()} ${room.openingTime}`);
+        const roomClosingTime = new Date(`${date.toDateString()} ${room.closingTime}`);
         
-        const isRoomTimeConflict = (roomStartTime <= userEndTime && roomEndTime >= userStartTime);
+        const isWithinOperatingHours = (userStartTime >= roomOpeningTime && userEndTime <= roomClosingTime);
         
         const isBookingConflict = Object.values(bookings).some(booking => 
           booking.room === room.roomName &&
@@ -117,7 +122,7 @@ const Dashboard = () => {
             new Date(`${date.toDateString()} ${booking.endTime}`) > userStartTime))
         );
   
-        const isAvailable = !isRoomTimeConflict && !isBookingConflict;
+        const isAvailable = isWithinOperatingHours && !isBookingConflict;
   
         if (isAvailable) {
           console.log(`Room ${room.roomName} is available`);
@@ -153,7 +158,7 @@ const Dashboard = () => {
       console.error('Error finding rooms:', error);
       alert(`There was an error finding available rooms: ${error.message}`);
     }
-  };
+  };  
 
   const handleEdit = async (reservation) => {
     setSelectedReservation(reservation);
@@ -312,10 +317,12 @@ const Dashboard = () => {
       const userEndTime = new Date(`${date.toDateString()} ${endTime}`);
   
       const availableRooms = Object.entries(rooms).filter(([roomId, room]) => {
-        const roomStartTime = new Date(`${date.toDateString()} ${room.startTime}`);
-        const roomEndTime = new Date(`${date.toDateString()} ${room.endTime}`);
+        if (!room.isAvailable) return false;
+  
+        const roomOpeningTime = new Date(`${date.toDateString()} ${room.openingTime}`);
+        const roomClosingTime = new Date(`${date.toDateString()} ${room.closingTime}`);
         
-        const isRoomTimeConflict = (roomStartTime <= userEndTime && roomEndTime >= userStartTime);
+        const isWithinOperatingHours = (userStartTime >= roomOpeningTime && userEndTime <= roomClosingTime);
         
         const isBookingConflict = Object.values(bookings).some(booking => 
           booking.room === room.roomName &&
@@ -324,7 +331,7 @@ const Dashboard = () => {
             new Date(`${date.toDateString()} ${booking.endTime}`) > userStartTime))
         );
   
-        return !isRoomTimeConflict && !isBookingConflict;
+        return isWithinOperatingHours && !isBookingConflict;
       }).map(([_, room]) => room.roomName);
   
       return availableRooms;

@@ -21,7 +21,7 @@ const Booking = () => {
   const { date, startTime, endTime, availableRooms } = location.state || {};
   const [ContactFacilitiesChecked, setContactFacilitiesChecked] = useState(false);
   const [ContactITChecked, setContactITChecked] = useState(false);
-  
+
 
   useEffect(() => {
     const storedAttendees = localStorage.getItem('attendees');
@@ -29,12 +29,12 @@ const Booking = () => {
       setAttendees(JSON.parse(storedAttendees));
     }
   }, []);
-  
+
   useEffect(() => {
     localStorage.setItem('attendees', JSON.stringify(attendees));
   }, [attendees]);
 
-  useEffect(() => {    
+  useEffect(() => {
     console.log("Date:", date);
     console.log("Start time:", startTime);
     console.log("End time:", endTime);
@@ -67,19 +67,19 @@ const Booking = () => {
     const selected = availableRooms.find(room => room === roomName);
     if (selected) {
       setSelectedRoom(roomName);
-      
+
       try {
         // Crear una consulta para buscar la sala por nombre
         const roomsRef = ref(db, 'meetingRooms');
         const roomQuery = query(roomsRef, orderByChild('roomName'), equalTo(roomName));
-        
+
         const snapshot = await get(roomQuery);
-        
+
         if (snapshot.exists()) {
           // Obtener el primer (y único) resultado
           const roomData = Object.values(snapshot.val())[0];
           console.log("Datos de la sala obtenidos:", roomData);
-          
+
           const capacity = parseInt(roomData.capacity, 10);
           setAvailableCapacities([...Array(capacity).keys()].map(i => i + 1));
           setSelectedCapacity(1);
@@ -117,7 +117,7 @@ const Booking = () => {
       await push(bookingRef, newBooking);
       console.log("Booking saved successfully");
       alert('Room booked successfully');
-  
+
       // Enviar correos electrónicos si hay asistentes
       if (attendees.length > 0) {
         console.log("Attempting to send emails to:", attendees);
@@ -130,7 +130,7 @@ const Booking = () => {
       } else {
         console.log("No attendees, skipping email send");
       }
-  
+
       navigate('/dashboard');
     } catch (error) {
       console.error('Error saving booking:', error);
@@ -138,54 +138,6 @@ const Booking = () => {
     }
   };
 
-  // const sendEmails = async (booking, isCancellation = false) => {
-  //   console.log("sendEmails called. Attendees:", booking.attendees);
-  //   const currentUser = getCurrentUser();
-    
-  //   if (!currentUser) {
-  //     console.error('No user is currently logged in');
-  //     return;
-  //   }
-    
-  //   console.log('Current user:', currentUser);
-  //   console.log('Booking details:', booking);
-  
-  //   const subject = isCancellation 
-  //     ? `Cancellation: Room Booking for ${booking.room}`
-  //     : `Room Booking: ${booking.room}`;
-  
-  //   const message = isCancellation
-  //     ? `Your booking for ${booking.room} on ${new Date(booking.date).toLocaleDateString()} has been cancelled.`
-  //     : booking.message;
-  
-  //   const templateParams = {
-  //     from_name: currentUser.name || 'Unknown User',
-  //     from_email: currentUser.email,
-  //     to_email: booking.attendees.join(', '),
-  //     subject: subject,
-  //     message: message,
-  //     room: booking.room,
-  //     date: new Date(booking.date).toLocaleDateString(),
-  //     start_time: booking.startTime,
-  //     end_time: booking.endTime, 
-  //   };
-  //   console.log('Email template params:', templateParams);
-  
-  //   try {
-  //     console.log("Attempting to send email with EmailJS");
-  //     const result = await emailjs.send(
-  //       'service_ufvxwq5',
-  //       'template_vzpjouz',
-  //       templateParams,
-  //       'p1yL7ZtB9h0RV17-X'
-  //     );
-  //     console.log('Email sent successfully:', result.text);
-  //     console.log('Email status:', result.status);
-  //   } catch (error) {
-  //     console.error('Error sending email:', error);
-  //   }
-  // };
-  
   const addAttendee = () => {
     if (newAttendee.trim() !== '' && !attendees.includes(newAttendee.trim())) {
       setAttendees([...attendees, newAttendee.trim()]);
@@ -193,10 +145,9 @@ const Booking = () => {
     }
   };
 
-  
   const handleContactFacilities = async (checked) => {
     setContactFacilitiesChecked(checked);
-     if (checked) {
+    if (checked) {
       const facilitiesBooking = {
         room: selectedRoom,
         attendees: ['j.marinp@outlook.com'],
@@ -229,11 +180,11 @@ const Booking = () => {
   return (
     <div className="booking-container">
       <Navbar />
-      
+
       <div className="booking-body">
         <h2>Book a Room</h2>
         <p>Date: {date ? new Date(date).toLocaleDateString() : 'Not selected'}</p>
-        <p>Time: {startTime && endTime ? `${startTime} - ${endTime}` : 'Not selected'}</p>        
+        <p>Time: {startTime && endTime ? `${startTime} - ${endTime}` : 'Not selected'}</p>
         <select onChange={(e) => handleRoomChange(e.target.value)} value={selectedRoom}>
           <option value="">Select a room</option>
           {availableRooms && availableRooms.map(room => (
@@ -242,7 +193,7 @@ const Booking = () => {
             </option>
           ))}
         </select>
-  
+
         <div>
           <label htmlFor="attendee-input">Add Attendees</label>
           <div style={{ display: 'flex' }}>
@@ -255,22 +206,22 @@ const Booking = () => {
               placeholder="Add attendees (optional)"
               list="attendees-list"
             />
-            
+
           </div>
           <datalist id="attendees-list">
             {allUsers.map(user => (
               <option key={user} value={user} />
             ))}
           </datalist>
-        </div>  
-  
+        </div>
+
         <label>Select number of attendees</label>
         <select onChange={(e) => setSelectedCapacity(Number(e.target.value))} value={selectedCapacity}>
           {availableCapacities.map(cap => (
             <option key={cap} value={cap}>{cap}</option>
           ))}
         </select>
-  
+
         <label>Email Message</label>
         <textarea
           value={emailMessage}

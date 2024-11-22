@@ -23,9 +23,10 @@ const Navbar = () => {
   });
   const [newRoomData, setNewRoomData] = useState({
     roomName: '',
-    capacity: '',
-    startTime: '',
-    endTime: ''
+    capacity: 0,
+    isAvailable: true,
+    openingTime: '',
+    closingTime: ''
   });
 
   useEffect(() => {
@@ -45,7 +46,7 @@ const Navbar = () => {
     const auth = getAuth();
     try {
       await signOut(auth);
-      navigate('/adminlogin');
+      navigate('/login');
     } catch (error) {
       console.error("Error al cerrar sesión: ", error);
     }
@@ -133,6 +134,22 @@ const Navbar = () => {
     }
   };
 
+  const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+  
+    if (modalType === 'newUser') {
+      setNewUserData(prevData => ({
+        ...prevData,
+        [name]: value
+      }));
+    } else if (modalType === 'newRoom') {
+      setNewRoomData(prevData => ({
+        ...prevData,
+        [name]: type === 'checkbox' ? checked : value
+      }));
+    }
+  };
+  
   const handleNewRoomCreation = async (e) => {
     e.preventDefault();
     try {
@@ -147,25 +164,18 @@ const Navbar = () => {
     }
   };
 
-  const handleInputChange = (e) => {
-    if (modalType === 'newUser') {
-      setNewUserData({ ...newUserData, [e.target.name]: e.target.value });
-    } else if (modalType === 'newRoom') {
-      setNewRoomData({ ...newRoomData, [e.target.name]: e.target.value });
-    }
-  };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      await handleChangePassword(currentPassword, newPassword);
-      // Mostrar mensaje de éxito
-      console.log("Contraseña cambiada con éxito");
-    } catch (error) {
-      // Mostrar mensaje de error
-      console.error(error.message);
-    }
-  };
+  // const handleSubmit = async (e) => {
+  //   e.preventDefault();
+  //   try {
+  //     await handleChangePassword(currentPassword, newPassword);
+  //     // Mostrar mensaje de éxito
+  //     console.log("Contraseña cambiada con éxito");
+  //   } catch (error) {
+  //     // Mostrar mensaje de error
+  //     console.error(error.message);
+  //   }
+  // };
 
 
 
@@ -242,12 +252,50 @@ const Navbar = () => {
               <>
                 <h2>Create New Meeting Room</h2>
                 <form onSubmit={handleNewRoomCreation}>
-                  <input type="text" name="roomName" placeholder="Room Name" onChange={handleInputChange} required />
-                  <input type="number" name="capacity" placeholder="Capacity" onChange={handleInputChange} required />
-                  <input type="time" name="startTime" placeholder="Start Time" onChange={handleInputChange} required />
-                  <input type="time" name="endTime" placeholder="End Time" onChange={handleInputChange} required />
+                  <input 
+                    type="text" 
+                    name="roomName" 
+                    placeholder="Room Name" 
+                    onChange={handleInputChange} 
+                    required 
+                  />
+                  <input 
+                    type="number" 
+                    name="capacity" 
+                    placeholder="Capacity" 
+                    onChange={handleInputChange} 
+                    required 
+                  />
+                  <div>
+                    <label>Available:</label>
+                    <label className="toggle-switch">
+                      <input 
+                        type="checkbox" 
+                        name="isAvailable" 
+                        checked={newRoomData.isAvailable}
+                        onChange={handleInputChange} 
+                      />
+                      <span className="slider"></span>
+                    </label>
+                  </div>
+                  <label>Openning Time:</label>
+                  <input 
+                    type="time" 
+                    name="openingTime" 
+                    placeholder="Opening Time" 
+                    onChange={handleInputChange} 
+                    required 
+                  />
+                  <label>Closing Time:</label>
+                  <input 
+                    type="time" 
+                    name="closingTime" 
+                    placeholder="Closing Time" 
+                    onChange={handleInputChange} 
+                    required 
+                  />
                   <button type="submit">Create Room</button>
-                </form>
+              </form>
               </>
             )}
             <button onClick={() => setIsModalOpen(false)}>Close</button>
