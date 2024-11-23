@@ -128,6 +128,7 @@ const Navbar = ({ onChangePassword, onLogout }) => {
           </div>
         </div>
       )}
+      
     </nav>
   );
 };

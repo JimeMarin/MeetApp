@@ -342,12 +342,15 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="dashboard-container">
-      <Navbar user={user} auth={auth} />
-
+    <div className="dashboard-container">      
+      <Navbar user={user} auth={auth} />      
+      <hr className="navbar-hr"></hr>
       <div className="dashboard-body">
         <h6>Dashboard</h6>
+        <br/>
         <h2>Overview</h2>
+        <hr className="dashboard-hr"></hr>
+        <br/>
         <ul className="reservation-list">
           {reservations.length > 0 ? (
             reservations.map((reservation) => (
@@ -362,8 +365,10 @@ const Dashboard = () => {
             <li>No reservations found</li>
           )}
         </ul>
-
+        <br/>
         <h2>New Bookings</h2>
+        <hr className='dashboard-hr'></hr>
+        <br/>
         <div className="booking-section">
           <Calendar onChange={setDate} value={date} />
           <div className="time-selection">
