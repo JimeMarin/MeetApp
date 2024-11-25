@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getDatabase, ref, get, query, orderByChild, equalTo, push } from "firebase/database";
 import { useLocation, useNavigate } from 'react-router-dom';
-import emailjs from '@emailjs/browser';
 import { getCurrentUser } from './AuthUtils';
 import { sendEmails } from './SendEmail';
 import Navbar from './Navbar';
@@ -21,6 +20,7 @@ const Booking = () => {
   const { date, startTime, endTime, availableRooms } = location.state || {};
   const [ContactFacilitiesChecked, setContactFacilitiesChecked] = useState(false);
   const [ContactITChecked, setContactITChecked] = useState(false);
+  const [recurrence, setRecurrence] = useState('');
 
 
   useEffect(() => {
@@ -63,7 +63,7 @@ const Booking = () => {
   };
 
   const handleRoomChange = async (roomName) => {
-    console.log("Sala seleccionada:", roomName);
+    console.log("Selected Room:", roomName);
     const selected = availableRooms.find(room => room === roomName);
     if (selected) {
       setSelectedRoom(roomName);
@@ -93,44 +93,65 @@ const Booking = () => {
   };
 
   const handleBook = async () => {
-    console.log("handleBook called. Current attendees:", attendees);
-
     if (!selectedRoom) {
       alert('Please select a room');
       return;
     }
-
+      
     const db = getDatabase();
     const bookingRef = ref(db, 'bookings');
-    const newBooking = {
+  
+    const baseBooking = {
       room: selectedRoom,
       attendees: attendees,
       message: emailMessage,
       capacity: selectedCapacity,
-      date: date, // Asegúrate de que 'date' esté en formato YYYY-MM-DD
+      date: date,
       startTime: startTime,
       endTime: endTime,
+      recurrence: recurrence
     };
-    console.log("Booking data:", newBooking);
-
+  
     try {
-      await push(bookingRef, newBooking);
-      console.log("Booking saved successfully");
+      const bookings = [];
+      const originalDate = new Date(date);
+  
+      if (recurrence === 'just once' ) {
+        bookings.push(baseBooking);
+      } else if (recurrence === 'weekly') {
+        
+      } else if (recurrence === 'monthly') {
+        for (let i = 0; i < 12; i++) {
+          let newDate = new Date(originalDate);
+          newDate.setMonth(newDate.getMonth() + i);
+          
+          // Ajustar al siguiente lunes si cae en fin de semana
+          while (newDate.getDay() === 0 || newDate.getDay() === 6) {
+            newDate.setDate(newDate.getDate() + 1);
+          }
+  
+          bookings.push({
+            ...baseBooking,
+            date: newDate.toISOString().split('T')[0]
+          });
+        }        
+      }
+      
+      for (const booking of bookings) {
+        await push(bookingRef, booking);
+      }
+  
+      console.log("Booking(s) saved successfully");
       alert('Room booked successfully');
-
-      // Enviar correos electrónicos si hay asistentes
+  
       if (attendees.length > 0) {
         console.log("Attempting to send emails to:", attendees);
         const currentUser = getCurrentUser();
-        await sendEmails({
-          ...newBooking,
-          userName: currentUser.name,
-          userEmail: currentUser.email
-        });
+        await sendEmails({ ...baseBooking, userName: currentUser.name, userEmail: currentUser.email });
       } else {
         console.log("No attendees, skipping email send");
       }
-
+  
       navigate('/dashboard');
     } catch (error) {
       console.error('Error saving booking:', error);
@@ -177,83 +198,130 @@ const Booking = () => {
     }
   };
 
+  const steps = [
+    { id: 1, label: "Select Dates" },
+    { id: 2, label: "Select a Room" },
+    { id: 3, label: "Book" },
+  ];
+  
+  const currentStep = 2;
+
   return (
     <div className="booking-container">
       <Navbar />
-
+      <hr className="navbar-hr"></hr>
       <div className="booking-body">
-        <h2>Book a Room</h2>
-        <p>Date: {date ? new Date(date).toLocaleDateString() : 'Not selected'}</p>
-        <p>Time: {startTime && endTime ? `${startTime} - ${endTime}` : 'Not selected'}</p>
-        <select onChange={(e) => handleRoomChange(e.target.value)} value={selectedRoom}>
-          <option value="">Select a room</option>
+       <div className="column-left"> 
+        {/* <p>Date: {date ? new Date(date).toLocaleDateString() : 'Not selected'}</p>
+        <p>Time: {startTime && endTime ? `${startTime} - ${endTime}` : 'Not selected'}</p> */}
+        <select id='room-selector' onChange={(e) => handleRoomChange(e.target.value)} value={selectedRoom}>
+          <option value="" disable selected hidden>Select a meeting room</option>
           {availableRooms && availableRooms.map(room => (
             <option key={room} value={room}>
               {room}
             </option>
           ))}
         </select>
-
-        <div>
-          <label htmlFor="attendee-input">Add Attendees</label>
-          <div style={{ display: 'flex' }}>
-            <input
-              id="attendee-input"
-              type="email"
-              value={newAttendee}
-              onChange={(e) => setNewAttendee(e.target.value)}
-              onBlur={addAttendee}
-              placeholder="Add attendees (optional)"
-              list="attendees-list"
-            />
-
+        
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ flex: 1 }}>
+            <br/>
+            <label htmlFor="attendee-input">Add Attendees</label>
+            <br/><br/>
+            <div style={{ display: 'flex' }}>              
+              <input
+                id="attendee-input"
+                type="email"
+                value={newAttendee}
+                onChange={(e) => setNewAttendee(e.target.value)}
+                onBlur={addAttendee}
+                placeholder="Who is attending (Optional)"
+                list="attendees-list"
+              />              
+            </div>
+            <datalist id="attendees-list">
+              {allUsers.map(user => (
+                <option key={user} value={user} />
+              ))}
+            </datalist>
           </div>
-          <datalist id="attendees-list">
-            {allUsers.map(user => (
-              <option key={user} value={user} />
-            ))}
-          </datalist>
+          
+          <div> 
+          <br/><br/><br/>           
+            <select 
+              id='capacity-selector' 
+              onChange={(e) => setSelectedCapacity(Number(e.target.value))} 
+              value={selectedCapacity}
+            >
+              <option  value="" disable selected hidden>0 px</option>
+              {availableCapacities.map(cap => (                
+                <option key={cap} value={cap}>{cap}</option>
+              ))}
+            </select>
+          </div>
         </div>
-
-        <label>Select number of attendees</label>
-        <select onChange={(e) => setSelectedCapacity(Number(e.target.value))} value={selectedCapacity}>
-          {availableCapacities.map(cap => (
-            <option key={cap} value={cap}>{cap}</option>
-          ))}
-        </select>
-
-        <label>Email Message</label>
+        <br/><br/>  
         <textarea
+          id='email-message'
           value={emailMessage}
           onChange={(e) => setEmailMessage(e.target.value)}
           placeholder="Message to attendees"
         />
-        <div>
-          <label>On the day of the meeting I need assistance from:</label>
-          <div>
-            <input
-              type="checkbox"
-              id="Facilities"
-              name="Facilities"
-              checked={ContactFacilitiesChecked}
-              onChange={(e) => handleContactFacilities(e.target.checked)}
-            />
-            <label htmlFor="Facilities">Facilities</label>
-          </div>
-          <div>
-            <input
-              type="checkbox"
-              id="IT"
-              name="IT"
-              checked={ContactITChecked}
-              onChange={(e) => handleContactIT(e.target.checked)}
-            />
-            <label htmlFor="IT">IT</label>
-          </div>
         </div>
+        <div className="column-right">
+          <label id="contact-label">On the day of the meeting I need assistance from:</label>
+          <div id='assistances'>              
+            <div>
+             
+              <input
+                type="checkbox"
+                id="Facilities"
+                name="Facilities"
+                checked={ContactFacilitiesChecked}
+                onChange={(e) => handleContactFacilities(e.target.checked)}
+              />              
+              <label htmlFor="Facilities">Facilities</label>
+            </div>
+            <br/>
+            <div>
+              <input
+                type="checkbox"
+                id="IT"
+                name="IT"
+                checked={ContactITChecked}
+                onChange={(e) => handleContactIT(e.target.checked)}
+              />
+              <label htmlFor="IT">IT</label>
+            </div>
+          </div>
+          <br/>
+          <select onChange={(e) => setRecurrence(e.target.value)} value={recurrence} >
+            <option value="" disable selected hidden>Recurrence</option>
+            <option value="just once">Just Once</option>
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+          </select>
+          <br/><br/>          
         <button onClick={handleBook}>Book</button>
-      </div>
+        </div>
+        <div className="progress-bar">
+          {steps.map((step, index) => (
+            <div key={step.id} className="progress-step">
+              <div className={`circle ${currentStep >= step.id ? "active" : ""}`}>
+                {currentStep > step.id ? "✔" : step.id}
+              </div>
+              <span className={`label ${currentStep >= step.id ? "active" : ""}`}>
+                {step.label}
+              </span>
+              {index < steps.length - 1 && (
+                <div className={`line ${currentStep > step.id ? "filled" : ""}`}></div>
+              )}
+            </div>
+          ))}
+        </div>        
+      </div>         
     </div>
+    
   );
 };
 

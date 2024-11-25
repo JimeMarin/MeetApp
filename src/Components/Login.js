@@ -5,7 +5,7 @@ import { getDatabase, ref, get } from 'firebase/database';
 import { useNavigate } from 'react-router-dom';
 import Company_Logo from '../img/meetapp.png';
 import './Login.css';
-import AdminDash from './AdminDash.js';
+
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -116,7 +116,7 @@ const Login = () => {
         <form className="login-form" onSubmit={handleLogin}>
           <h2>Welcome Back</h2>
           <div className="input-group">
-            <label htmlFor="email">Email</label>
+            
             <input
               type="email"
               id="email"
@@ -124,10 +124,11 @@ const Login = () => {
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="username"
               required
+              placeholder='Email'
             />
           </div>
           <div className="input-group">
-            <label htmlFor="password">Password</label>
+            
             <input
               type="password"
               id="password"
@@ -135,6 +136,7 @@ const Login = () => {
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="current-password"
               required
+              placeholder='Password'
             />
           </div>
           <div className="options">
@@ -149,10 +151,10 @@ const Login = () => {
             </div>
             <div className="forgot-password">
               <button type="button" onClick={handleForgotPassword}>
-                Forgot my password
+                Forgot password?
               </button>
               <button type="button" onClick={handleResetPassword}>
-                Reset my password
+                Reset password
               </button>
             </div>
           </div>

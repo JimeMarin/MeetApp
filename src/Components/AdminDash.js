@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { onAuthStateChanged, getAuth } from 'firebase/auth';
-import { auth } from './firebaseConfig';
 import { getDatabase, ref, onValue, remove, update } from 'firebase/database';
 import { useNavigate } from 'react-router-dom';
 import 'react-calendar/dist/Calendar.css';
-import './Dashboard.css';
+import './AdminDash.css';
 import Navbar from './AdminNavbar';
 
 const AdminDash = () => {
@@ -29,6 +28,7 @@ const AdminDash = () => {
   });
   const navigate = useNavigate();
   const auth = getAuth();
+  
 
   useEffect(() => {
     const db = getDatabase();
@@ -181,6 +181,7 @@ const AdminDash = () => {
     setEditRoomForm({
       roomName: room.roomName,
       capacity: room.capacity,
+      isAvailable: room.isAvailable,
       // Inicializa otros campos aquí
     });
   };
@@ -242,14 +243,14 @@ const AdminDash = () => {
   return (
     <div className="dashboard-container">
       <Navbar user={user} auth={auth} />
-      
+      <hr className="navbar-hr"></hr>
       <div className="dashboard-body">
-        <h1>Administrator Dashboard</h1>
+        <h1>Admin Dashboard</h1>
         <div>
           <h2>Manage Users</h2>
           <div>            
             <select onChange={(e) => handleUserSelect(JSON.parse(e.target.value))}>
-              <option value="">Select a user</option>
+              <option value="" selected disabled hidden>Select a user</option>
               {filteredUsers.map(user => (
                 <option key={user.id} value={JSON.stringify(user)}>
                   {user.email}
@@ -306,7 +307,7 @@ const AdminDash = () => {
           <h2>Manage Meeting Rooms</h2>
             <div>            
             <select onChange={(e) => handleRoomSelect(JSON.parse(e.target.value))}>
-              <option value="">Select a room</option>
+              <option value="" selected disabled hidden>Select a room</option>
               {filteredRooms.map(room => (
                 <option key={room.id} value={JSON.stringify(room)}>
                   {room.roomName}

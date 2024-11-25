@@ -8,7 +8,7 @@
     display: flex;
     height: 100vh;
     width: 100vw;
-    background-color: #07101b;
+    background-color: #121418;
   }
   
   .left-side {
@@ -34,9 +34,8 @@
   }
   
   .login-form {
-    width: 80%;
-    max-width: 400px;
-    padding: 20px;
+    width: 90%;
+    max-width: 100%;   
     border-radius: 8px;
     color: #fff;
   }
@@ -44,7 +43,7 @@
   .login-form h2 {
     margin-bottom: 20px;
     font-size: 24px;
-    text-align: center;
+    text-align:center;
   }
   
   .input-group {
@@ -56,6 +55,7 @@
     font-size: 14px;
     margin-bottom: 5px;
     color: #ffffff;
+    text-align: left;
   }
   
   .input-group input {
@@ -92,25 +92,28 @@
     color: #78a0aa;
     cursor: pointer;
     font-size: 14px;
-    align-self: right;
+    padding: none;
   }
   
   .forgot-password button:hover {
     text-decoration: underline;
+   
   }
   
   .login-button {
     width: 100%;
     padding: 10px;
-    background-color: #142436;
-    color: #fff;
+    background-color: #E2F0FF;
+    color: #000000;
     border: none;
     border-radius: 4px;
     font-size: 16px;
     cursor: pointer;
+    font-weight: lighter;
   }
   
   .login-button:hover {
     background-color: #2a4158;
   }
   
+ 

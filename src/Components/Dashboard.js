@@ -24,8 +24,7 @@ const Dashboard = () => {
   const [newStartTime, setNewStartTime] = useState('');
   const [newEndTime, setNewEndTime] = useState('');
   const [availableRooms, setAvailableRooms] = useState([]);
-  const [newRoom, setNewRoom] = useState('');
-
+  const [newRoom, setNewRoom] = useState('');  
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -41,12 +40,28 @@ const Dashboard = () => {
     return () => unsubscribe();
   }, [navigate]);
 
+  useEffect(() => {
+    const handleEscapeKey = (event) => {
+      if (event.key === 'Escape') {
+        setShowPopup(false);
+      }
+    };
+  
+    document.addEventListener('keydown', handleEscapeKey);
+    
+    return () => {
+      document.removeEventListener('keydown', handleEscapeKey);
+    };
+  }, []);
+
   // En el componente DatePicker, asegúrate de usar la zona horaria local
   <DatePicker
     selected={newDate}
     onChange={(date) => setNewDate(date)}
     dateFormat="yyyy-MM-dd"
-    timeZone="UTC"
+    showTimeSelect
+    timeFormat="HH:mm"
+    timeIntervals={60}    
   />
 
   const fetchReservations = async () => {
@@ -80,7 +95,8 @@ const Dashboard = () => {
     const db = getDatabase();
     const roomsRef = ref(db, 'meetingRooms');
     const bookingsRef = ref(db, 'bookings');
-  
+    
+
     try {
       console.log("Fetching rooms and bookings...");
   
@@ -258,37 +274,35 @@ const Dashboard = () => {
     if (window.confirm('Are you sure you want to cancel this reservation?')) {
       const db = getDatabase();
       const bookingRef = ref(db, `bookings/${selectedReservation.id}`);
-  
       try {
-        // Obtener los datos completos de la reserva antes de eliminarla
         const snapshot = await get(bookingRef);
         const bookingData = snapshot.val();
   
-        // Eliminar la reserva
         await remove(bookingRef);
   
-        // Enviar correos electrónicos de cancelación
+        // Enviar email de cancelación principal
         await sendEmails(bookingData, true);
   
+        // Enviar email de cancelación a Facilities si estaba marcado
         if (bookingData.contactFacilitiesChecked) {
           const facilitiesBooking = {
-            attendees: ['j.marinp@outlook.com'],            
+            ...bookingData,
+            attendees: ['j.marinp@outlook.com'],
             message: 'A booking that required facilities support has been cancelled.'
           };
-          await sendEmails(facilitiesBooking);
+          await sendEmails(facilitiesBooking, true);
         }
-
+  
+        // Enviar email de cancelación a IT si estaba marcado
         if (bookingData.contactITChecked) {
           const itBooking = {
+            ...bookingData,
             attendees: ['jimemarinp@gmail.com'],
-            date: date,
-            startTime: startTime,
-            endTime: endTime,
             message: 'A booking that required IT support has been cancelled.'
           };
-          await sendEmails(itBooking);
+          await sendEmails(itBooking, true);
         }
-
+  
         alert('Reservation cancelled successfully and notifications sent');
         setShowPopup(false);
         fetchReservations();
@@ -370,29 +384,48 @@ const Dashboard = () => {
         <hr className='dashboard-hr'></hr>
         <br/>
         <div className="booking-section">
-          <Calendar onChange={setDate} value={date} />
+          <div><Calendar onChange={setDate} value={date} /></div>
           <div className="time-selection">
-            <label htmlFor="startTime">Start Time:</label>
-            <input
-              type="time"
-              id="startTime"
-              value={startTime}
-              onChange={(e) => setStartTime(e.target.value)}
-            />
-            <label htmlFor="endTime">End Time:</label>
-            <input
-              type="time"
-              id="endTime"
-              value={endTime}
-              onChange={(e) => setEndTime(e.target.value)}
-            />
-            <button onClick={handleSearch}>Search</button>
+            <div className='time-row'>
+              <div>
+              <label htmlFor="startTime">Start Time:</label>
+              <input
+                type="time"
+                id="startTime"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+                step="3600"
+                min="00:00"
+                max="23:59"
+              />
+              </div>
+              <div>
+              <label htmlFor="endTime">End Time:</label>
+              <input
+                type="time"
+                id="endTime"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+                step="3600"
+                data-format="24h"
+              />
+              </div>
+            </div>
+            <br/>
+            <button onClick={handleSearch}>Search</button>            
           </div>
         </div>
-
         {showPopup && (
-          <div className="popup">
-            <h3>Edit Reservation</h3>
+          <div 
+          className="popup-overlay"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowPopup(false);
+            }
+          }}
+        >
+          <div className="popup" >  
+            <div className='rightside'>
             <select 
               value={newRoom} 
               onChange={(e) => setNewRoom(e.target.value)}
@@ -401,6 +434,9 @@ const Dashboard = () => {
                 <option key={room} value={room}>{room}</option>
               ))}
             </select>
+            <button onClick={handleCancelReservation}>Cancel Reservation</button>
+            </div>
+            <div className='leftside'>
             <DatePicker
               selected={newDate}
               onChange={(date) => setNewDate(date)}
@@ -423,9 +459,10 @@ const Dashboard = () => {
               onChange={(e) => setNewAttendees(e.target.value.split(', '))}
               placeholder="Add attendees (comma separated)"
             />
-            <button onClick={handleUpdateReservation}>Update Reservation</button>
-            <button onClick={handleCancelReservation}>Cancel Reservation</button>
+            <button onClick={handleUpdateReservation}>Update Reservation</button>            
             <button onClick={() => setShowPopup(false)}>Close</button>
+            </div>
+          </div>
           </div>
         )}
       </div>
