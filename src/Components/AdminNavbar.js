@@ -183,20 +183,6 @@ const Navbar = () => {
   };
 
 
-  // const handleSubmit = async (e) => {
-  //   e.preventDefault();
-  //   try {
-  //     await handleChangePassword(currentPassword, newPassword);
-  //     // Mostrar mensaje de éxito
-  //     console.log("Contraseña cambiada con éxito");
-  //   } catch (error) {
-  //     // Mostrar mensaje de error
-  //     console.error(error.message);
-  //   }
-  // };
-
-
-
   return (
     <nav className="navbar">
       <div className="navbar-logo" onClick={() => navigate('/AdminDash')}>
