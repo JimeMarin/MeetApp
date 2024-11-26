@@ -5,40 +5,58 @@ import { getDatabase, ref, push, set } from 'firebase/database';
 import { useNavigate } from 'react-router-dom';
 import Company_Logo from '../img/meetapp.png';
 
-
 const Navbar = () => {
   const navigate = useNavigate();
   const [error, setError] = useState('');
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(() => {
+    const savedState = localStorage.getItem('dropdownOpen');
+    return savedState ? JSON.parse(savedState) : false;
+  });
   const [userName, setUserName] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
-  const [newUserData, setNewUserData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    role: ''
-  });
-  const [newRoomData, setNewRoomData] = useState({
-    roomName: '',
-    capacity: 0,
-    isAvailable: true,
-    openingTime: '',
-    closingTime: ''
-  });
+  const [newUserData, setNewUserData] = useState({ firstName: '', lastName: '', email: '', role: '' });
+  const [newRoomData, setNewRoomData] = useState({ roomName: '', capacity: 0, isAvailable: true, openingTime: '', closingTime: '' });
 
+  // Obtener el usuario de Firebase
   useEffect(() => {
     const auth = getAuth();
-    const user = auth.currentUser;
-    if (user) {
-      const displayName = user.displayName || user.email;
-      setUserName(displayName);
-    }
+    const unsubscribe = auth.onAuthStateChanged(user => {
+      if (user) {
+        const displayName = user.displayName || user.email;
+        setUserName(displayName);
+      } else {
+        setUserName('');
+      }
+    });
+
+    return () => unsubscribe();
   }, []);
 
-  const toggleDropdown = () => {
+  // Persistir el estado del dropdown
+  useEffect(() => {
+    localStorage.setItem('dropdownOpen', JSON.stringify(dropdownOpen));
+  }, [dropdownOpen]);
+
+  // Cerrar el menú al hacer clic fuera de él
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownOpen && !event.target.closest('.navbar-profile')) {
+        setDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [dropdownOpen]);
+
+  const toggleDropdown = (event) => {
+    event.stopPropagation();
     setDropdownOpen(!dropdownOpen);
   };
 
@@ -215,45 +233,48 @@ const Navbar = () => {
           <div className="modal-content">
             {modalType === 'changePassword' && (
               <>
-                <h2>Change Password</h2>
+                <h2 className='modal-title'>Change Password</h2>
                 <input
                   type="password"
-                  placeholder="Contraseña Actual"
+                  className='modal-inputs' 
+                  placeholder="Current password"
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
                 />
                 <input
                   type="password"
-                  placeholder="Nueva Contraseña"
+                  className='modal-inputs' 
+                  placeholder="New password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                 />
                 {error && <p className="error">{error}</p>}
-                <button onClick={handleChangePassword}>Cambiar Contraseña</button>
+                <button className="modal-button" onClick={handleChangePassword}>Change Password</button>
               </>
             )}
             {modalType === 'newUser' && (
               <>
-                <h2>Create New User</h2>
+                <h2 className='modal-title'>Create New User</h2>
                 <form onSubmit={handleNewUserCreation}>
-                  <input type="text" name="firstName" placeholder="First Name" onChange={handleInputChange} required />
-                  <input type="text" name="lastName" placeholder="Last Name" onChange={handleInputChange} required />
-                  <input type="email" name="email" placeholder="Email" onChange={handleInputChange} required />
-                  <select name="role" onChange={handleInputChange} required>
+                  <input type="text" className='modal-inputs'  name="firstName" placeholder="First Name" onChange={handleInputChange} required />
+                  <input type="text" className='modal-inputs'  name="lastName" placeholder="Last Name" onChange={handleInputChange} required />
+                  <input type="email" className='modal-inputs'  name="email" placeholder="Email" onChange={handleInputChange} required />
+                  <select name="role" className='modal-inputs'  onChange={handleInputChange} required>
                     <option value="">Select Role</option>
                     <option value="user">User</option>
                     <option value="admin">Admin</option>
                   </select>
-                  <button type="submit">Create User</button>
+                  <button className="modal-button" type="submit">Create User</button>
                 </form>
               </>
             )}
             {modalType === 'newRoom' && (
               <>
-                <h2>Create New Meeting Room</h2>
+                <h2 className='modal-title'>Create New Meeting Room</h2>
                 <form onSubmit={handleNewRoomCreation}>
                   <input 
                     type="text" 
+                    className='modal-inputs' 
                     name="roomName" 
                     placeholder="Room Name" 
                     onChange={handleInputChange} 
@@ -261,6 +282,7 @@ const Navbar = () => {
                   />
                   <input 
                     type="number" 
+                    className='modal-inputs' 
                     name="capacity" 
                     placeholder="Capacity" 
                     onChange={handleInputChange} 
@@ -271,6 +293,7 @@ const Navbar = () => {
                     <label className="toggle-switch">
                       <input 
                         type="checkbox" 
+                        className='modal-inputs' 
                         name="isAvailable" 
                         checked={newRoomData.isAvailable}
                         onChange={handleInputChange} 
@@ -281,6 +304,7 @@ const Navbar = () => {
                   <label>Openning Time:</label>
                   <input 
                     type="time" 
+                    className='modal-inputs' 
                     name="openingTime" 
                     placeholder="Opening Time" 
                     onChange={handleInputChange} 
@@ -289,16 +313,17 @@ const Navbar = () => {
                   <label>Closing Time:</label>
                   <input 
                     type="time" 
+                    className='modal-inputs' 
                     name="closingTime" 
                     placeholder="Closing Time" 
                     onChange={handleInputChange} 
                     required 
                   />
-                  <button type="submit">Create Room</button>
+                  <button className="modal-button" type="submit">Create Room</button>
               </form>
               </>
             )}
-            <button onClick={() => setIsModalOpen(false)}>Close</button>
+            <button className="modal-button" onClick={() => setIsModalOpen(false)}>Close</button>
           </div>
         </div>
       )}

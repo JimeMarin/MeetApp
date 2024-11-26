@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getDatabase, ref, get, query, orderByChild, equalTo, push } from "firebase/database";
+import { getAuth } from 'firebase/auth';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { getCurrentUser } from './AuthUtils';
 import { sendEmails } from './SendEmail';
@@ -97,11 +98,20 @@ const Booking = () => {
       alert('Please select a room');
       return;
     }
-      
+    
+    const auth = getAuth();
+    const user = auth.currentUser;
+    
+    if (!user) {
+      alert('You must be logged in to make a reservation');
+      return;
+    }
+  
     const db = getDatabase();
-    const bookingRef = ref(db, 'bookings');
+    const bookingRef = ref(db, `bookings/${user.uid}`);
   
     const baseBooking = {
+      userId: user.uid,
       room: selectedRoom,
       attendees: attendees,
       message: emailMessage,
@@ -116,10 +126,10 @@ const Booking = () => {
       const bookings = [];
       const originalDate = new Date(date);
   
-      if (recurrence === 'just once' ) {
+      if (recurrence === 'just once') {
         bookings.push(baseBooking);
       } else if (recurrence === 'weekly') {
-        
+        // Implementa la lógica para reservas semanales aquí
       } else if (recurrence === 'monthly') {
         for (let i = 0; i < 12; i++) {
           let newDate = new Date(originalDate);

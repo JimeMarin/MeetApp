@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, getAuth } from 'firebase/auth';
 import { auth } from './firebaseConfig'; 
 import { useNavigate } from 'react-router-dom';
-import { getDatabase, ref, get, query, orderByChild, equalTo, update, remove } from 'firebase/database';
+import { getDatabase, ref, get, query, orderByChild, equalTo, update, remove} from 'firebase/database';
 import Calendar from 'react-calendar';
 import { sendEmails } from './SendEmail'; 
 import DatePicker from 'react-datepicker';
@@ -26,6 +26,7 @@ const Dashboard = () => {
   const [availableRooms, setAvailableRooms] = useState([]);
   const [newRoom, setNewRoom] = useState('');  
   const navigate = useNavigate();
+  const auth = getAuth();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -65,14 +66,21 @@ const Dashboard = () => {
   />
 
   const fetchReservations = async () => {
+    const auth = getAuth();
+    const user = auth.currentUser;
+  
+    if (!user) {
+      console.error("No hay usuario autenticado");
+      return;
+    }
+  
     const db = getDatabase();
-    const reservationsRef = ref(db, 'bookings');
+    const reservationsRef = ref(db, `bookings/${user.uid}`); // Cambia aquí para filtrar por UID
   
     try {
       const snapshot = await get(reservationsRef);
       if (snapshot.exists()) {
         const data = snapshot.val();
-        
         const fetchedReservations = Object.entries(data).map(([bookingId, booking]) => ({
           id: bookingId,
           room: booking.room,
@@ -80,7 +88,6 @@ const Dashboard = () => {
           startTime: booking.startTime,
           endTime: booking.endTime
         }));
-  
         setReservations(fetchedReservations);
       } else {
         console.log('No se encontraron reservas.');
@@ -357,7 +364,7 @@ const Dashboard = () => {
 
   return (
     <div className="dashboard-container">      
-      <Navbar user={user} auth={auth} />      
+      <Navbar user={user}/>      
       <hr className="navbar-hr"></hr>
       <div className="dashboard-body">
         <h6>Dashboard</h6>

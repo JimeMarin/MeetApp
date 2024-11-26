@@ -7,6 +7,7 @@ import { getDatabase } from 'firebase/database';
 
 const firebaseConfig = {
   apiKey: "AIzaSyD1pQojVUabbzMh3eaGGss0NI3DLPPka2g",
+  databaseURL: "https://meetapp-7cc2e-default-rtdb.firebaseio.com/",
   authDomain: "meetapp-7cc2e.firebaseapp.com",
   projectId: "meetapp-7cc2e",
   storageBucket: "meetapp-7cc2e.appspot.com",

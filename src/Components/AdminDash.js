@@ -17,7 +17,7 @@ const AdminDash = () => {
     capacity: 0,
     isAvailable: true,
   });
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm] = useState('');
   const [selectedUser, setSelectedUser] = useState(null);
   const [editForm, setEditForm] = useState({
     email: '',
@@ -245,114 +245,128 @@ const AdminDash = () => {
       <Navbar user={user} auth={auth} />
       <hr className="navbar-hr"></hr>
       <div className="dashboard-body">
-        <h1>Admin Dashboard</h1>
-        <div>
-          <h2>Manage Users</h2>
-          <div>            
-            <select onChange={(e) => handleUserSelect(JSON.parse(e.target.value))}>
-              <option value="" selected disabled hidden>Select a user</option>
-              {filteredUsers.map(user => (
-                <option key={user.id} value={JSON.stringify(user)}>
-                  {user.email}
-                </option>
-              ))}
-            </select>
-          </div>
-          {selectedUser && (
-            <div>
-              <h3>Edit User</h3>
-              <form>
-                <input
-                  name="email"
-                  value={editForm.email}
-                  onChange={handleInputChange}
-                  placeholder="Email"
-                />
-                <input
-                  name="firstName"
-                  value={editForm.firstName}
-                  onChange={handleInputChange}
-                  placeholder="First Name"
-                />
-                <input
-                  name="lastName"
-                  value={editForm.lastName}
-                  onChange={handleInputChange}
-                  placeholder="Last Name"
-                />
+        <h6>Admin Dashboard</h6>
+        <br/><br/>
+        <div className="flex-container">
+        <div className="box-container">
+          <h2 className='title'>Manage Users</h2>
+              <div className="box">
                 <div>
-                  <label>Active:</label>
-                  <label className="toggle-switch">
-                    <input
-                      type="checkbox"
-                      checked={editForm.isActive}
-                      onChange={handleToggleChange}
-                    />
-                    <span className="slider"></span>
-                  </label>
+                  <select className='selector' onChange={(e) => handleUserSelect(JSON.parse(e.target.value))}>
+                    <option value="" selected disabled hidden>Select a user</option>
+                    {filteredUsers.map(user => (
+                      <option key={user.id} value={JSON.stringify(user)}>
+                        {user.email}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-                <input
-                  name="role"
-                  value={editForm.role}
-                  onChange={handleInputChange}
-                  placeholder="Role"
-                />
-                <button type="button" onClick={handleUpdate}>Update User</button>
-                <button type="button" onClick={handleDelete}>Delete User</button>
-              </form>
-            </div>
-          )}
-        </div>
-        <div>
-          <h2>Manage Meeting Rooms</h2>
-            <div>            
-            <select onChange={(e) => handleRoomSelect(JSON.parse(e.target.value))}>
-              <option value="" selected disabled hidden>Select a room</option>
-              {filteredRooms.map(room => (
-                <option key={room.id} value={JSON.stringify(room)}>
-                  {room.roomName}
-                </option>
-              ))}
-            </select>
-            </div>
-          {selectedRoom && (
-              <div>
-                <h3>Edit Room</h3>
-                <form>
-                  <input
-                    name="roomName"
-                    value={editRoomForm.roomName}
-                    onChange={handleRoomInputChange}
-                    placeholder="Room Name"
-                  />
-                  <input
-                    type="number"
-                    name="capacity"
-                    value={editRoomForm.capacity}
-                    onChange={handleRoomInputChange}
-                    placeholder="Capacity"
-                  />
+                {selectedUser && (
                   <div>
-                    <label>Available:</label>
-                    <label className="toggle-switch">
+                    <br/>
+                    <form className='form'>
                       <input
-                        type="checkbox"
-                        name="isAvailable"
-                        checked={editRoomForm.isAvailable}
-                        onChange={handleRoomInputChange}
+                        name="email"
+                        className='input-form'
+                        value={editForm.email}
+                        onChange={handleInputChange}
+                        placeholder="Email"
                       />
-                      <span className="slider"></span>
-                    </label>
+                      <input
+                        name="firstName"
+                        className='input-form'
+                        value={editForm.firstName}
+                        onChange={handleInputChange}
+                        placeholder="First Name"
+                      />
+                      <input
+                        name="lastName"
+                        className='input-form'
+                        value={editForm.lastName}
+                        onChange={handleInputChange}
+                        placeholder="Last Name"
+                      />
+                      <div>
+                        <label>Active:</label>
+                        <label className="toggle-switch">
+                          <input
+                            type="checkbox"
+                            checked={editForm.isActive}
+                            onChange={handleToggleChange}
+                          />
+                          <span className="slider"></span>
+                        </label>
+                      </div>
+                      <label>Role:</label>
+                      <input
+                        name="role"
+                        className='input-form'
+                        value={editForm.role}
+                        onChange={handleInputChange}
+                        placeholder="Role"
+                      />
+                      <button type="button" className='edit-button' onClick={handleUpdate}>Update User</button>
+                      <button type="button" className='edit-button' onClick={handleDelete}>Delete User</button>
+                    </form>
                   </div>
-                  {/* Agrega aquí más campos si es necesario */}
-                  <button type="button" onClick={handleUpdateRoom}>Update Room</button>
-                  <button type="button" onClick={handleDeleteRoom}>Delete Room</button>
-                </form>
+                )}
               </div>
-          )}
+        </div>
+            <div className="box-container">
+              <h2 className='title'>Manage Meeting Rooms</h2>
+                <div className="box-2">
+                  <div>
+                    <select className='selector' onChange={(e) => handleRoomSelect(JSON.parse(e.target.value))}>
+                      <option value="" selected disabled hidden>Select a room</option>
+                      {filteredRooms.map(room => (
+                        <option key={room.id} value={JSON.stringify(room)}>
+                          {room.roomName}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {selectedRoom && (
+                    <div>
+                      <br/>
+                      <form className='form'>
+                        <input
+                          name="roomName"
+                          className='input-form'
+                          value={editRoomForm.roomName}
+                          onChange={handleRoomInputChange}
+                          placeholder="Room Name"
+                        />
+                        <input
+                          type="number"
+                          className='input-form'
+                          name="capacity"
+                          value={editRoomForm.capacity}
+                          onChange={handleRoomInputChange}
+                          placeholder="Capacity"
+                        />
+                        <div>
+                          <label>Available:</label>
+                          <label className="toggle-switch">
+                            <input
+                              type="checkbox"
+                              name="isAvailable"
+                              checked={editRoomForm.isAvailable}
+                              onChange={handleRoomInputChange}
+                            />
+                            <span className="slider"></span>
+                          </label>
+                        </div>
+                        {/* Add more fields here if necessary */}
+                        <button type="button" className='edit-button' onClick={handleUpdateRoom}>Update Room</button>
+                        <button type="button" className='edit-button' onClick={handleDeleteRoom}>Delete Room</button>
+                      </form>
+                    </div>
+                  )}
+                </div>
+            </div>
         </div>
       </div>
-    </div>
+    </div>    
   );
 };
 

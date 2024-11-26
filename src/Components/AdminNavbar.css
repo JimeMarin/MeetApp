@@ -2,7 +2,8 @@
     display: flex;
     align-items: center;
     background-color: #121418; /* Cambia según tu diseño */
-    padding: 10px 20px;
+    padding: 20px;
+    padding-right: 35px;
   }
   
   .navbar-logo img {
@@ -36,11 +37,15 @@
   
   .dropdown-item {
     padding: 10px 15px;
-    color: white; /* Color del texto del menú */
-    background: transparent;
+    background-color: white; /* Color del texto del menú */
+    color: black;
     border: none;
     text-align: left;
     cursor: pointer;
+    border-radius: 5px;
+    margin: 4px;
+    font-weight: lighter;
+    font-size: 12px;
   }
   
   .dropdown-item:hover {
@@ -69,6 +74,7 @@
   
   .modal-content {
     background: white;
+
     padding: 20px;
     border-radius: 5px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
@@ -110,11 +116,29 @@
     transition: .4s;
     border-radius: 50%;
   }
-  
-  input:checked + .slider {
-    background-color: #2196F3;
-  }
+   
   
   input:checked + .slider:before {
     transform: translateX(26px);
+  }
+
+  .modal-inputs{
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 10px;
+  }
+
+  .modal-button{
+    background-color: #2C2C2C;
+    width: 100%;
+    padding: 8px;
+    font-weight: lighter;
+    border-radius: 5px;
+    margin: 2px;
+  }
+
+  .modal-title{
+    color: black;
   }

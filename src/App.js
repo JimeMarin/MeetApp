@@ -2,11 +2,11 @@ import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import Login from './Components/Login';
 import Dashboard from './Components/Dashboard';
-import './App.css';
 import AdminDash from './Components/AdminDash';
 import Booking from './Components/Booking';
 import Navbar from './Components/Navbar';
 import Reset from './Components/Reset';
+import './App.css';
 
 
 function App() {

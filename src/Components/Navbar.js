@@ -6,7 +6,11 @@ import Company_Logo from '../img/meetapp.png';
 
 const Navbar = ({ onChangePassword, onLogout }) => {
   const navigate = useNavigate();
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(() => {
+    const savedState = localStorage.getItem('dropdownOpen');
+    return savedState ? JSON.parse(savedState) : false;
+  });
+  
   const [error, setError] = useState('');
   const [userName, setUserName] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -17,18 +21,38 @@ const Navbar = ({ onChangePassword, onLogout }) => {
   // Obtener el usuario de Firebase
   useEffect(() => {
     const auth = getAuth();
-    const user = auth.currentUser ;
-
-    console.log(user);
-
-    if (user) {
-      const displayName = user.displayName || user.email;
-      setUserName(displayName);
-    }
+    const unsubscribe = auth.onAuthStateChanged(user => {
+      if (user) {
+        const displayName = user.displayName || user.email;
+        setUserName(displayName);
+      } else {
+        setUserName('');
+      }
+    });
+  
+    return () => unsubscribe();
   }, []);
 
-  const toggleDropdown = () => {
-    console.log('Profile clicked');
+  useEffect(() => {
+    localStorage.setItem('dropdownOpen', JSON.stringify(dropdownOpen));
+  }, [dropdownOpen]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownOpen && !event.target.closest('.navbar-profile')) {
+        setDropdownOpen(false);
+      }
+    };
+  
+    document.addEventListener('click', handleClickOutside);
+  
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [dropdownOpen]);
+
+  const toggleDropdown = (event) => {
+    event.stopPropagation();
     setDropdownOpen(!dropdownOpen);
   };
 
