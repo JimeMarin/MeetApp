@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { getDatabase, ref, get, query, orderByChild, equalTo, push } from "firebase/database";
+import { getAuth } from 'firebase/auth';
 import { useLocation, useNavigate } from 'react-router-dom';
-import emailjs from '@emailjs/browser';
 import { getCurrentUser } from './AuthUtils';
+import { sendEmails } from './SendEmail';
 import Navbar from './Navbar';
 import './Booking.css';
 
@@ -18,7 +19,10 @@ const Booking = () => {
   const db = getDatabase();
   const location = useLocation();
   const { date, startTime, endTime, availableRooms } = location.state || {};
-  
+  const [ContactFacilitiesChecked, setContactFacilitiesChecked] = useState(false);
+  const [ContactITChecked, setContactITChecked] = useState(false);
+  const [recurrence, setRecurrence] = useState('');
+
 
   useEffect(() => {
     const storedAttendees = localStorage.getItem('attendees');
@@ -26,12 +30,12 @@ const Booking = () => {
       setAttendees(JSON.parse(storedAttendees));
     }
   }, []);
-  
+
   useEffect(() => {
     localStorage.setItem('attendees', JSON.stringify(attendees));
   }, [attendees]);
 
-  useEffect(() => {    
+  useEffect(() => {
     console.log("Date:", date);
     console.log("Start time:", startTime);
     console.log("End time:", endTime);
@@ -60,23 +64,23 @@ const Booking = () => {
   };
 
   const handleRoomChange = async (roomName) => {
-    console.log("Sala seleccionada:", roomName);
+    console.log("Selected Room:", roomName);
     const selected = availableRooms.find(room => room === roomName);
     if (selected) {
       setSelectedRoom(roomName);
-      
+
       try {
         // Crear una consulta para buscar la sala por nombre
         const roomsRef = ref(db, 'meetingRooms');
         const roomQuery = query(roomsRef, orderByChild('roomName'), equalTo(roomName));
-        
+
         const snapshot = await get(roomQuery);
-        
+
         if (snapshot.exists()) {
           // Obtener el primer (y único) resultado
           const roomData = Object.values(snapshot.val())[0];
           console.log("Datos de la sala obtenidos:", roomData);
-          
+
           const capacity = parseInt(roomData.capacity, 10);
           setAvailableCapacities([...Array(capacity).keys()].map(i => i + 1));
           setSelectedCapacity(1);
@@ -90,16 +94,24 @@ const Booking = () => {
   };
 
   const handleBook = async () => {
-    console.log("handleBook called. Current attendees:", attendees);
-
     if (!selectedRoom) {
       alert('Please select a room');
       return;
     }
-
+    
+    const auth = getAuth();
+    const user = auth.currentUser;
+    
+    if (!user) {
+      alert('You must be logged in to make a reservation');
+      return;
+    }
+  
     const db = getDatabase();
-    const bookingRef = ref(db, 'bookings');
-    const newBooking = {
+    const bookingRef = ref(db, `bookings/${user.uid}`);
+  
+    const baseBooking = {
+      userId: user.uid,
       room: selectedRoom,
       attendees: attendees,
       message: emailMessage,
@@ -107,66 +119,53 @@ const Booking = () => {
       date: date,
       startTime: startTime,
       endTime: endTime,
+      recurrence: recurrence
     };
-    console.log("Booking data:", newBooking);
-
+  
     try {
-      await push(bookingRef, newBooking);
-      console.log("Booking saved successfully");
+      const bookings = [];
+      const originalDate = new Date(date);
+  
+      if (recurrence === 'just once') {
+        bookings.push(baseBooking);
+      } else if (recurrence === 'weekly') {
+        // Implementa la lógica para reservas semanales aquí
+      } else if (recurrence === 'monthly') {
+        for (let i = 0; i < 12; i++) {
+          let newDate = new Date(originalDate);
+          newDate.setMonth(newDate.getMonth() + i);
+          
+          // Ajustar al siguiente lunes si cae en fin de semana
+          while (newDate.getDay() === 0 || newDate.getDay() === 6) {
+            newDate.setDate(newDate.getDate() + 1);
+          }
+  
+          bookings.push({
+            ...baseBooking,
+            date: newDate.toISOString().split('T')[0]
+          });
+        }        
+      }
+      
+      for (const booking of bookings) {
+        await push(bookingRef, booking);
+      }
+  
+      console.log("Booking(s) saved successfully");
       alert('Room booked successfully');
-
-      // Enviar correos electrónicos si hay asistentes
+  
       if (attendees.length > 0) {
         console.log("Attempting to send emails to:", attendees);
-        await sendEmails(newBooking);
+        const currentUser = getCurrentUser();
+        await sendEmails({ ...baseBooking, userName: currentUser.name, userEmail: currentUser.email });
       } else {
         console.log("No attendees, skipping email send");
-      }  
-
+      }
+  
       navigate('/dashboard');
     } catch (error) {
       console.error('Error saving booking:', error);
       alert('Error booking the room');
-    }
-  };
-
-  const sendEmails = async (booking) => {
-    console.log("sendEmails called. Attendees:", booking.attendees);
-    const currentUser = getCurrentUser();
-    
-    if (!currentUser) {
-      console.error('No user is currently logged in');
-      return;
-    }
-    
-    console.log('Current user:', currentUser);
-    console.log('Booking details:', booking);
-  
-    const templateParams = {
-      from_name: currentUser.name || 'Unknown User',
-      from_email: currentUser.email,
-      to_email: booking.attendees.join(', '),
-      subject: `Room Booking: ${booking.room}`,
-      message: booking.message, // Este es el mensaje que el usuario ingresó
-      room: booking.room,
-      date: new Date(booking.date).toLocaleDateString(),
-      start_time: booking.startTime,
-      end_time: booking.endTime, 
-    };
-    console.log('Email template params:', templateParams);
-  
-    try {
-      console.log("Attempting to send email with EmailJS");
-      const result = await emailjs.send(
-        'service_ufvxwq5',
-        'template_vzpjouz',
-        templateParams,
-        'p1yL7ZtB9h0RV17-X'
-      );
-      console.log('Email sent successfully:', result.text);
-      console.log('Email status:', result.status);
-    } catch (error) {
-      console.error('Error sending email:', error);
     }
   };
 
@@ -177,80 +176,162 @@ const Booking = () => {
     }
   };
 
+  const handleContactFacilities = async (checked) => {
+    setContactFacilitiesChecked(checked);
+    if (checked) {
+      const facilitiesBooking = {
+        room: selectedRoom,
+        attendees: ['j.marinp@outlook.com'],
+        message: 'A user has requested facilities support for their room booking.',
+        capacity: selectedCapacity,
+        date: date,
+        startTime: startTime,
+        endTime: endTime
+      };
+      await sendEmails(facilitiesBooking);
+    }
+  };
+
+  const handleContactIT = async (checked) => {
+    setContactITChecked(checked);
+    if (checked) {
+      const ITBooking = {
+        room: selectedRoom,
+        attendees: ['jimemarinp@gmail.com'],
+        message: 'A user has requested IT support for their room booking.',
+        capacity: selectedCapacity,
+        date: date,
+        startTime: startTime,
+        endTime: endTime
+      };
+      await sendEmails(ITBooking);
+    }
+  };
+
+  const steps = [
+    { id: 1, label: "Select Dates" },
+    { id: 2, label: "Select a Room" },
+    { id: 3, label: "Book" },
+  ];
+  
+  const currentStep = 2;
+
   return (
     <div className="booking-container">
       <Navbar />
-      
+      <hr className="navbar-hr"></hr>
       <div className="booking-body">
-        <h2>Book a Room</h2>
-        <p>Date: {date ? new Date(date).toLocaleDateString() : 'Not selected'}</p>
-        <p>Time: {startTime && endTime ? `${startTime} - ${endTime}` : 'Not selected'}</p>
-        
-        <select onChange={(e) => handleRoomChange(e.target.value)} value={selectedRoom}>
-          <option value="">Select a room</option>
+       <div className="column-left"> 
+        {/* <p>Date: {date ? new Date(date).toLocaleDateString() : 'Not selected'}</p>
+        <p>Time: {startTime && endTime ? `${startTime} - ${endTime}` : 'Not selected'}</p> */}
+        <select id='room-selector' onChange={(e) => handleRoomChange(e.target.value)} value={selectedRoom}>
+          <option value="" disable selected hidden>Select a meeting room</option>
           {availableRooms && availableRooms.map(room => (
             <option key={room} value={room}>
               {room}
             </option>
           ))}
         </select>
-  
-        <div>
-          <label htmlFor="attendee-input">Add Attendees</label>
-          <div style={{ display: 'flex' }}>
-            <input
-              id="attendee-input"
-              type="email"
-              value={newAttendee}
-              onChange={(e) => setNewAttendee(e.target.value)}
-              onBlur={addAttendee}
-              placeholder="Add attendees (optional)"
-              list="attendees-list"
-            />
-            {/* <button type="button" onClick={addAttendee}>Add</button> */}
-          </div>
-          <datalist id="attendees-list">
-            {allUsers.map(user => (
-              <option key={user} value={user} />
-            ))}
-          </datalist>
-        </div>
-  
-        {/* { <div>
-          <h3>Current Attendees:</h3>
-          {attendees.length > 0 ? (
-            <ul>
-              {attendees.map((attendee, index) => (
-                <li key={index}>
-                  {attendee}
-                  <button onClick={() => setAttendees(attendees.filter((_, i) => i !== index))}>
-                    Remove
-                  </button>
-                </li>
+        
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ flex: 1 }}>
+            <br/>
+            <label htmlFor="attendee-input">Add Attendees</label>
+            <br/><br/>
+            <div style={{ display: 'flex' }}>              
+              <input
+                id="attendee-input"
+                type="email"
+                value={newAttendee}
+                onChange={(e) => setNewAttendee(e.target.value)}
+                onBlur={addAttendee}
+                placeholder="Who is attending (Optional)"
+                list="attendees-list"
+              />              
+            </div>
+            <datalist id="attendees-list">
+              {allUsers.map(user => (
+                <option key={user} value={user} />
               ))}
-            </ul>
-          ) : (
-            <p>No attendees added yet.</p>
-          )}
-        </div> } */}
-  
-        <label>Select number of attendees</label>
-        <select onChange={(e) => setSelectedCapacity(Number(e.target.value))} value={selectedCapacity}>
-          {availableCapacities.map(cap => (
-            <option key={cap} value={cap}>{cap}</option>
-          ))}
-        </select>
-  
-        <label>Email Message</label>
+            </datalist>
+          </div>
+          
+          <div> 
+          <br/><br/><br/>           
+            <select 
+              id='capacity-selector' 
+              onChange={(e) => setSelectedCapacity(Number(e.target.value))} 
+              value={selectedCapacity}
+            >
+              <option  value="" disable selected hidden>0 px</option>
+              {availableCapacities.map(cap => (                
+                <option key={cap} value={cap}>{cap}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <br/><br/>  
         <textarea
+          id='email-message'
           value={emailMessage}
           onChange={(e) => setEmailMessage(e.target.value)}
           placeholder="Message to attendees"
         />
-  
+        </div>
+        <div className="column-right">
+          <label id="contact-label">On the day of the meeting I need assistance from:</label>
+          <div id='assistances'>              
+            <div>
+             
+              <input
+                type="checkbox"
+                id="Facilities"
+                name="Facilities"
+                checked={ContactFacilitiesChecked}
+                onChange={(e) => handleContactFacilities(e.target.checked)}
+              />              
+              <label htmlFor="Facilities">Facilities</label>
+            </div>
+            <br/>
+            <div>
+              <input
+                type="checkbox"
+                id="IT"
+                name="IT"
+                checked={ContactITChecked}
+                onChange={(e) => handleContactIT(e.target.checked)}
+              />
+              <label htmlFor="IT">IT</label>
+            </div>
+          </div>
+          <br/>
+          <select onChange={(e) => setRecurrence(e.target.value)} value={recurrence} >
+            <option value="" disable selected hidden>Recurrence</option>
+            <option value="just once">Just Once</option>
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+          </select>
+          <br/><br/>          
         <button onClick={handleBook}>Book</button>
-      </div>
+        </div>
+        <div className="progress-bar">
+          {steps.map((step, index) => (
+            <div key={step.id} className="progress-step">
+              <div className={`circle ${currentStep >= step.id ? "active" : ""}`}>
+                {currentStep > step.id ? "✔" : step.id}
+              </div>
+              <span className={`label ${currentStep >= step.id ? "active" : ""}`}>
+                {step.label}
+              </span>
+              {index < steps.length - 1 && (
+                <div className={`line ${currentStep > step.id ? "filled" : ""}`}></div>
+              )}
+            </div>
+          ))}
+        </div>        
+      </div>         
     </div>
+    
   );
 };
 

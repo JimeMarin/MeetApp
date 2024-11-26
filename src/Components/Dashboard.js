@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, getAuth } from 'firebase/auth';
 import { auth } from './firebaseConfig'; 
 import { useNavigate } from 'react-router-dom';
-import { getDatabase, ref, get, query, orderByChild, equalTo, update, remove } from 'firebase/database';
+import { getDatabase, ref, get, query, orderByChild, equalTo, update, remove} from 'firebase/database';
 import Calendar from 'react-calendar';
+import { sendEmails } from './SendEmail'; 
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import 'react-calendar/dist/Calendar.css';
@@ -23,9 +24,9 @@ const Dashboard = () => {
   const [newStartTime, setNewStartTime] = useState('');
   const [newEndTime, setNewEndTime] = useState('');
   const [availableRooms, setAvailableRooms] = useState([]);
-  const [newRoom, setNewRoom] = useState('');
-
+  const [newRoom, setNewRoom] = useState('');  
   const navigate = useNavigate();
+  const auth = getAuth();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -40,23 +41,46 @@ const Dashboard = () => {
     return () => unsubscribe();
   }, [navigate]);
 
+  useEffect(() => {
+    const handleEscapeKey = (event) => {
+      if (event.key === 'Escape') {
+        setShowPopup(false);
+      }
+    };
+  
+    document.addEventListener('keydown', handleEscapeKey);
+    
+    return () => {
+      document.removeEventListener('keydown', handleEscapeKey);
+    };
+  }, []);
+
   // En el componente DatePicker, asegúrate de usar la zona horaria local
   <DatePicker
     selected={newDate}
     onChange={(date) => setNewDate(date)}
     dateFormat="yyyy-MM-dd"
-    timeZone="UTC"
+    showTimeSelect
+    timeFormat="HH:mm"
+    timeIntervals={60}    
   />
 
   const fetchReservations = async () => {
+    const auth = getAuth();
+    const user = auth.currentUser;
+  
+    if (!user) {
+      console.error("No hay usuario autenticado");
+      return;
+    }
+  
     const db = getDatabase();
-    const reservationsRef = ref(db, 'bookings');
+    const reservationsRef = ref(db, `bookings/${user.uid}`); // Cambia aquí para filtrar por UID
   
     try {
       const snapshot = await get(reservationsRef);
       if (snapshot.exists()) {
         const data = snapshot.val();
-        
         const fetchedReservations = Object.entries(data).map(([bookingId, booking]) => ({
           id: bookingId,
           room: booking.room,
@@ -64,7 +88,6 @@ const Dashboard = () => {
           startTime: booking.startTime,
           endTime: booking.endTime
         }));
-  
         setReservations(fetchedReservations);
       } else {
         console.log('No se encontraron reservas.');
@@ -79,7 +102,8 @@ const Dashboard = () => {
     const db = getDatabase();
     const roomsRef = ref(db, 'meetingRooms');
     const bookingsRef = ref(db, 'bookings');
-  
+    
+
     try {
       console.log("Fetching rooms and bookings...");
   
@@ -105,10 +129,15 @@ const Dashboard = () => {
       Object.entries(rooms).forEach(([roomId, room]) => {
         console.log(`Checking room: ${room.roomName}`);
         
-        const roomStartTime = new Date(`${date.toDateString()} ${room.startTime}`);
-        const roomEndTime = new Date(`${date.toDateString()} ${room.endTime}`);
+        if (!room.isAvailable) {
+          console.log(`Room ${room.roomName} is not available (isAvailable: false)`);
+          return;
+        }
+  
+        const roomOpeningTime = new Date(`${date.toDateString()} ${room.openingTime}`);
+        const roomClosingTime = new Date(`${date.toDateString()} ${room.closingTime}`);
         
-        const isRoomTimeConflict = (roomStartTime <= userEndTime && roomEndTime >= userStartTime);
+        const isWithinOperatingHours = (userStartTime >= roomOpeningTime && userEndTime <= roomClosingTime);
         
         const isBookingConflict = Object.values(bookings).some(booking => 
           booking.room === room.roomName &&
@@ -116,7 +145,7 @@ const Dashboard = () => {
             new Date(`${date.toDateString()} ${booking.endTime}`) > userStartTime))
         );
   
-        const isAvailable = !isRoomTimeConflict && !isBookingConflict;
+        const isAvailable = isWithinOperatingHours && !isBookingConflict;
   
         if (isAvailable) {
           console.log(`Room ${room.roomName} is available`);
@@ -152,7 +181,7 @@ const Dashboard = () => {
       console.error('Error finding rooms:', error);
       alert(`There was an error finding available rooms: ${error.message}`);
     }
-  };
+  };  
 
   const handleEdit = async (reservation) => {
     setSelectedReservation(reservation);
@@ -252,10 +281,36 @@ const Dashboard = () => {
     if (window.confirm('Are you sure you want to cancel this reservation?')) {
       const db = getDatabase();
       const bookingRef = ref(db, `bookings/${selectedReservation.id}`);
-  
       try {
+        const snapshot = await get(bookingRef);
+        const bookingData = snapshot.val();
+  
         await remove(bookingRef);
-        alert('Reservation cancelled successfully');
+  
+        // Enviar email de cancelación principal
+        await sendEmails(bookingData, true);
+  
+        // Enviar email de cancelación a Facilities si estaba marcado
+        if (bookingData.contactFacilitiesChecked) {
+          const facilitiesBooking = {
+            ...bookingData,
+            attendees: ['j.marinp@outlook.com'],
+            message: 'A booking that required facilities support has been cancelled.'
+          };
+          await sendEmails(facilitiesBooking, true);
+        }
+  
+        // Enviar email de cancelación a IT si estaba marcado
+        if (bookingData.contactITChecked) {
+          const itBooking = {
+            ...bookingData,
+            attendees: ['jimemarinp@gmail.com'],
+            message: 'A booking that required IT support has been cancelled.'
+          };
+          await sendEmails(itBooking, true);
+        }
+  
+        alert('Reservation cancelled successfully and notifications sent');
         setShowPopup(false);
         fetchReservations();
       } catch (error) {
@@ -283,10 +338,12 @@ const Dashboard = () => {
       const userEndTime = new Date(`${date.toDateString()} ${endTime}`);
   
       const availableRooms = Object.entries(rooms).filter(([roomId, room]) => {
-        const roomStartTime = new Date(`${date.toDateString()} ${room.startTime}`);
-        const roomEndTime = new Date(`${date.toDateString()} ${room.endTime}`);
+        if (!room.isAvailable) return false;
+  
+        const roomOpeningTime = new Date(`${date.toDateString()} ${room.openingTime}`);
+        const roomClosingTime = new Date(`${date.toDateString()} ${room.closingTime}`);
         
-        const isRoomTimeConflict = (roomStartTime <= userEndTime && roomEndTime >= userStartTime);
+        const isWithinOperatingHours = (userStartTime >= roomOpeningTime && userEndTime <= roomClosingTime);
         
         const isBookingConflict = Object.values(bookings).some(booking => 
           booking.room === room.roomName &&
@@ -295,7 +352,7 @@ const Dashboard = () => {
             new Date(`${date.toDateString()} ${booking.endTime}`) > userStartTime))
         );
   
-        return !isRoomTimeConflict && !isBookingConflict;
+        return isWithinOperatingHours && !isBookingConflict;
       }).map(([_, room]) => room.roomName);
   
       return availableRooms;
@@ -306,12 +363,15 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="dashboard-container">
-      <Navbar user={user} auth={auth} />
-
+    <div className="dashboard-container">      
+      <Navbar user={user}/>      
+      <hr className="navbar-hr"></hr>
       <div className="dashboard-body">
         <h6>Dashboard</h6>
+        <br/>
         <h2>Overview</h2>
+        <hr className="dashboard-hr"></hr>
+        <br/>
         <ul className="reservation-list">
           {reservations.length > 0 ? (
             reservations.map((reservation) => (
@@ -326,32 +386,53 @@ const Dashboard = () => {
             <li>No reservations found</li>
           )}
         </ul>
-
+        <br/>
         <h2>New Bookings</h2>
+        <hr className='dashboard-hr'></hr>
+        <br/>
         <div className="booking-section">
-          <Calendar onChange={setDate} value={date} />
+          <div><Calendar onChange={setDate} value={date} /></div>
           <div className="time-selection">
-            <label htmlFor="startTime">Start Time:</label>
-            <input
-              type="time"
-              id="startTime"
-              value={startTime}
-              onChange={(e) => setStartTime(e.target.value)}
-            />
-            <label htmlFor="endTime">End Time:</label>
-            <input
-              type="time"
-              id="endTime"
-              value={endTime}
-              onChange={(e) => setEndTime(e.target.value)}
-            />
-            <button onClick={handleSearch}>Search</button>
+            <div className='time-row'>
+              <div>
+              <label htmlFor="startTime">Start Time:</label>
+              <input
+                type="time"
+                id="startTime"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+                step="3600"
+                min="00:00"
+                max="23:59"
+              />
+              </div>
+              <div>
+              <label htmlFor="endTime">End Time:</label>
+              <input
+                type="time"
+                id="endTime"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+                step="3600"
+                data-format="24h"
+              />
+              </div>
+            </div>
+            <br/>
+            <button onClick={handleSearch}>Search</button>            
           </div>
         </div>
-
         {showPopup && (
-          <div className="popup">
-            <h3>Edit Reservation</h3>
+          <div 
+          className="popup-overlay"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowPopup(false);
+            }
+          }}
+        >
+          <div className="popup" >  
+            <div className='rightside'>
             <select 
               value={newRoom} 
               onChange={(e) => setNewRoom(e.target.value)}
@@ -360,6 +441,9 @@ const Dashboard = () => {
                 <option key={room} value={room}>{room}</option>
               ))}
             </select>
+            <button onClick={handleCancelReservation}>Cancel Reservation</button>
+            </div>
+            <div className='leftside'>
             <DatePicker
               selected={newDate}
               onChange={(date) => setNewDate(date)}
@@ -382,9 +466,10 @@ const Dashboard = () => {
               onChange={(e) => setNewAttendees(e.target.value.split(', '))}
               placeholder="Add attendees (comma separated)"
             />
-            <button onClick={handleUpdateReservation}>Update Reservation</button>
-            <button onClick={handleCancelReservation}>Cancel Reservation</button>
+            <button onClick={handleUpdateReservation}>Update Reservation</button>            
             <button onClick={() => setShowPopup(false)}>Close</button>
+            </div>
+          </div>
           </div>
         )}
       </div>

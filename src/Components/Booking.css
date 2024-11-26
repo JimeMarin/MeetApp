@@ -1,142 +1,231 @@
+* {
+    margin: 0;
+    padding: 0;      
+} 
 
-.booking-header {
+body {
+    font-family: Arial, sans-serif;  
+    color: #000000;
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    overflow-x: hidden;
+  }
+
+.column-left {
+    flex: 1;
+    margin: none;
+    padding: 20px;
+    padding-right: 40px;
+}
+
+.column-right {    
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;
     align-items: center;
-    margin-bottom: 20px;
-}
-
-.booking-body {
-    display: flex;
-    justify-content: space-between;
-    flex-wrap: wrap;
     gap: 20px;
-}
-
-h1 {
-    font-size: 24px;
-    font-weight: bold;
-    color: #2b2b2b;
-    margin-bottom: 20px;
+    padding: 20px;    
+    border-radius: 10px;
+    width: 300px;
+    margin: none;
 }
 
 label {
-    font-size: 14px;
-    color: #2b2b2b;
-    margin-bottom: 5px;
-    display: inline-block;
+    font-size: 16px;
+    color: #ffffff;
+    font-weight: bold;
+    margin-bottom: 10px;
+    text-align: center;
 }
 
-select,
-input,
-textarea {
+select {
     width: 100%;
     padding: 10px;
-    margin-bottom: 15px;
     font-size: 14px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
+    border: 1px solid #f56608;
+    border-radius: 20px;
+    background-color: #ffffff;
+    color: #000000;
+    font-weight: bold;
+    appearance: none;
+    cursor: pointer;
+}
+
+
+select option :hover {
+    background-color: #f56608;
+    
+}
+
+
+input[type="checkbox"] {
+    margin-right: 10px;
+}
+
+div > input[type="checkbox"] + label {
+    color: #ffffff;
+    font-size: 14px;
+}
+
+/* div {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+    gap: 10px;
+} */
+
+#room-selector{
+    width: 40%;
+    padding: 7px;
+}
+
+#attendee-input{
+    width: 50%;
+    padding: 7px;
+}
+#capacity-selector{
+    width: 80px;
+    padding: 7px;
+    display: flex;
+}
+
+#assistances{
+    border: 1px solid #ffa500; 
+    border-radius: 5px; 
+    padding: 20px; /* Espaciado interno */
+    background-color: #ffffff; 
+    width: 100%; /* Ancho de la caja */
+    max-width: 300px; /* Ancho máximo */
+    margin: 0 auto; /* Centrar en la página */
+    display: flex;
+    flex-direction: column;
+    gap: 10px; /* Espacio entre los checkboxes */    
+}
+
+#assistances label {
+    color: black;
 }
 
 input::placeholder,
 textarea::placeholder {
     color: #ccc;
-    font-size: 14px;
-}
-
-.attendees-section {
-    margin-bottom: 15px;
-}
-
-.assistance-section {
-    margin-top: 20px;
-    display: flex;
-    flex-direction: column;
-}
-
-.assistance-checkboxes {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    font-size: 14px;
-}
-
-.checkbox-group {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.recurrence-section {
-    margin-top: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+    font-size: 14px;    
+    padding: 4px;    
 }
 
 button {
     width: 100%;
     padding: 15px;
-    background-color: #4CAF50;
+    background-color: #f56608;
     color: white;
     font-size: 16px;
+    font-weight: bold;
     border: none;
-    border-radius: 4px;
+    border-radius: 20px;
     cursor: pointer;
+    transition: background-color 0.3s;
 }
 
-button:hover {
-    background-color: #45a049;
-}
 
-.message-box {
+.navbar-hr{
+    width: calc(90%-20px);
+    margin: 0 auto;
+    border: none;
+    border-top: 0.1px solid  #ffffff98;
+  }
+  
+.booking-body {
+    padding: 40px;
     width: 100%;
-    height: 150px;
+    flex-grow: 1;   
+    display: flex; 
+    flex-wrap: wrap;
+    justify-content: space-between;
+}
+
+.booking-container {    
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background-color: #121418;
+}
+
+#contact-label{
+    text-align: start;
+}
+
+textarea {
+    width: 100%;
     resize: none;
     border: 1px solid #ccc;
     border-radius: 4px;
     padding: 10px;
-    font-size: 14px;
+    font-size: 14px;    
+    height: 60%;
 }
+/*  */
 
-.font-size-control {
-    font-size: 12px;
-    border: none;
-    background: none;
-    cursor: pointer;
-    margin-left: 5px;
-    color: #555;
-}
-
-.meeting-steps {
+.progress-bar {
     display: flex;
+    align-items: center;
     justify-content: space-between;
-    margin-top: 20px;
     width: 100%;
-}
-
-.meeting-step {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.step {
-    background-color: #4CAF50;
-    color: white;
-    padding: 5px 10px;
+    align-items: flex-end;
+  }
+  
+  .progress-step {
+    text-align: center;
+    position: relative;
+    flex: 1;
+  }
+  
+  .circle {
+    width: 30px;
+    height: 30px;
     border-radius: 50%;
+    border: 2px solid gray;
+    background-color: white;
+    color: gray;
+    font-weight: bold;
     display: flex;
-    justify-content: center;
     align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    transition: all 0.3s ease;
+  }
+  
+  .circle.active {
+    border-color: #f56608;
+    background-color: #f56608;
+    color: white;
+  }
+  
+  .label {
+    margin-top: 8px;
     font-size: 12px;
-}
-
-.step.inactive {
-    background-color: #ccc;
-}
-
-.step-label {
-    font-size: 12px;
-    color: #555;
-}
+    color: gray;
+    transition: color 0.3s ease;
+  }
+  
+  .label.active {
+    color: #f56608;
+  }
+  
+  .line {
+    position: absolute;
+    top: 15px;
+    left: 50%;
+    right: -50%;
+    height: 4px;
+    background-color: gray;
+    z-index: -1;
+    transform: translateX(-50%);
+    transition: background-color 0.3s ease;
+  }
+  
+  .line.filled {
+    background-color: #f56608;
+  }
+  
+    

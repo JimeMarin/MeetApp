@@ -1,12 +1,13 @@
 
 import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { getAuth, signInWithEmailAndPassword, setPersistence, browserLocalPersistence, browserSessionPersistence } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getDatabase } from 'firebase/database';
 
 
 const firebaseConfig = {
   apiKey: "AIzaSyD1pQojVUabbzMh3eaGGss0NI3DLPPka2g",
+  databaseURL: "https://meetapp-7cc2e-default-rtdb.firebaseio.com/",
   authDomain: "meetapp-7cc2e.firebaseapp.com",
   projectId: "meetapp-7cc2e",
   storageBucket: "meetapp-7cc2e.appspot.com",
@@ -19,4 +20,4 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const database = getDatabase(app);
-export {auth, db, database };
+export {auth, db, database, signInWithEmailAndPassword, setPersistence, browserLocalPersistence, browserSessionPersistence};

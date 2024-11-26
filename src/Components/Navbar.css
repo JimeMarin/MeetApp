@@ -1,7 +1,7 @@
 .navbar {
     display: flex;
     align-items: center;
-    background-color: #1c1c1c; /* Cambia según tu diseño */
+    background-color: #121418; /* Cambia según tu diseño */
     padding: 10px 20px;
   }
   
@@ -36,11 +36,15 @@
   
   .dropdown-item {
     padding: 10px 15px;
-    color: white; /* Color del texto del menú */
-    background: transparent;
+    background-color: white; /* Color del texto del menú */
+    color: black;
     border: none;
     text-align: left;
     cursor: pointer;
+    border-radius: 5px;
+    margin: 4px;
+    font-weight: lighter;
+    font-size: 12px;
   }
   
   .dropdown-item:hover {
@@ -53,18 +57,18 @@
     margin: 10px 0; /* Margen arriba y abajo */
   }
   
-  /* Estilos para el modal */
+
   .modal {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: #121418;
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 1000; /* Asegúrate de que esté encima de otros elementos */
+    z-index: 1000; 
   }
   
   .modal-content {
