@@ -127,9 +127,20 @@ const Booking = () => {
       const originalDate = new Date(date);
   
       if (recurrence === 'just once') {
-        bookings.push(baseBooking);
+        bookings.push({
+          ...baseBooking,
+          date: originalDate.toISOString().split('T')[0]
+        });
       } else if (recurrence === 'weekly') {
-        // Implementa la lógica para reservas semanales aquí
+        for (let i = 0; i < 4; i++) {
+          let newDate = new Date(originalDate);
+          newDate.setDate(newDate.getDate() + (i * 7));
+          
+          bookings.push({
+            ...baseBooking,
+            date: newDate.toISOString().split('T')[0]
+          });
+        }
       } else if (recurrence === 'monthly') {
         for (let i = 0; i < 12; i++) {
           let newDate = new Date(originalDate);

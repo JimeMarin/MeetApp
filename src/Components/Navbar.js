@@ -132,21 +132,24 @@ const Navbar = ({ onChangePassword, onLogout }) => {
           <div className="modal-content">
             {modalType === 'changePassword' && (
               <>
-                <h2>Change Password</h2>
+                <h2 className="modal-title">Change Password</h2>
                 <input
                   type="password"
-                  placeholder="Contraseña Actual"
+                  className="user-modal"
+                  placeholder="Current password"  
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
                 />
                 <input
                   type="password"
-                  placeholder="Nueva Contraseña"
+                  className="user-modal"
+                  placeholder="New password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                 />
                 {error && <p className="error">{error}</p>}
-                <button onClick={handleChangePassword}>Cambiar Contraseña</button>
+                <button className='user-button' onClick={handleChangePassword}>Change Password</button>
+                <button className="user-button" onClick={() => setIsModalOpen(false)}>Close</button>
               </>
             )}
           </div>

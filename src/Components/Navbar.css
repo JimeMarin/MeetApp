@@ -78,3 +78,23 @@
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   }
   
+  .modal-title {
+    color: black;
+  }
+
+  .user-modal{
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 10px;
+  }
+
+  .user-button{
+    background-color: #2C2C2C;
+    width: 100%;
+    padding: 8px;
+    font-weight: lighter;
+    border-radius: 5px;
+    margin: 2px;
+  }
