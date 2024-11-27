@@ -4,7 +4,7 @@ import { getDatabase, ref, onValue, remove, update } from 'firebase/database';
 import { useNavigate } from 'react-router-dom';
 import 'react-calendar/dist/Calendar.css';
 import './AdminDash.css';
-import Navbar from './AdminNavbar';
+import AdminNavbar from './AdminNavbar';
 
 const AdminDash = () => {
   const [user, setUser] = useState(null);
@@ -170,9 +170,7 @@ const AdminDash = () => {
             console.error("Error deleting user:", error);
             alert(`Error deleting user: ${error.message}`);
           });
-      } else {
-        alert("You must be signed in to delete users");
-      }
+      } 
     });
   };
 
@@ -242,7 +240,7 @@ const AdminDash = () => {
 
   return (
     <div className="dashboard-container">
-      <Navbar user={user} auth={auth} />
+      <AdminNavbar user={user} auth={auth} />
       <hr className="navbar-hr"></hr>
       <div className="dashboard-body">
         <h6>Admin Dashboard</h6>

@@ -18,7 +18,7 @@ const Navbar = ({ onChangePassword, onLogout }) => {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
 
-  // Obtener el usuario de Firebase
+  
   useEffect(() => {
     const auth = getAuth();
     const unsubscribe = auth.onAuthStateChanged(user => {
@@ -62,7 +62,7 @@ const Navbar = ({ onChangePassword, onLogout }) => {
       await signOut(auth);
       navigate('/login');
     } catch (error) {
-      console.error("Error al cerrar sesión: ", error);
+      console.error("Error on Logout: ", error);
     }
   };
 
@@ -72,12 +72,12 @@ const Navbar = ({ onChangePassword, onLogout }) => {
     const user = auth.currentUser ;
 
     if (!user) {
-      setError("No hay usuario autenticado");
+      setError("Unautenticated user");
       return;
     }
 
     if (newPassword.length < 8) {
-      setError("La nueva contraseña debe tener al menos 8 caracteres");
+      setError("New password must have at least 8 characters");
       return;
     }
 
@@ -90,14 +90,14 @@ const Navbar = ({ onChangePassword, onLogout }) => {
       await reauthenticateWithCredential(user, credential);
       await updatePassword(user, newPassword);
 
-      console.log("Contraseña actualizada exitosamente");
+      console.log("Password updated successfully");
       setIsModalOpen(false);
-      // Aquí puedes agregar lógica adicional, como mostrar un mensaje de éxito
+      
     } catch (err) {
       if (err.code === 'auth/wrong-password') {
-        setError("La contraseña actual es incorrecta");
+        setError("Current password is incorrect");
       } else {
-        setError("Error al cambiar la contraseña: " + err.message);
+        setError("Error changing password: " + err.message);
       }
     }
   };

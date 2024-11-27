@@ -5,7 +5,7 @@ import { getDatabase, ref, push, set } from 'firebase/database';
 import { useNavigate } from 'react-router-dom';
 import Company_Logo from '../img/meetapp.png';
 
-const Navbar = () => {
+const AdminNavbar = () => {
   const navigate = useNavigate();
   const [error, setError] = useState('');
   const [dropdownOpen, setDropdownOpen] = useState(() => {
@@ -20,7 +20,7 @@ const Navbar = () => {
   const [newUserData, setNewUserData] = useState({ firstName: '', lastName: '', email: '', role: '' });
   const [newRoomData, setNewRoomData] = useState({ roomName: '', capacity: 0, isAvailable: true, openingTime: '', closingTime: '' });
 
-  // Obtener el usuario de Firebase
+  
   useEffect(() => {
     const auth = getAuth();
     const unsubscribe = auth.onAuthStateChanged(user => {
@@ -35,12 +35,12 @@ const Navbar = () => {
     return () => unsubscribe();
   }, []);
 
-  // Persistir el estado del dropdown
+  
   useEffect(() => {
     localStorage.setItem('dropdownOpen', JSON.stringify(dropdownOpen));
   }, [dropdownOpen]);
 
-  // Cerrar el menú al hacer clic fuera de él
+ 
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownOpen && !event.target.closest('.navbar-profile')) {
@@ -66,7 +66,7 @@ const Navbar = () => {
       await signOut(auth);
       navigate('/login');
     } catch (error) {
-      console.error("Error al cerrar sesión: ", error);
+      console.error("Error logging out: ", error);
     }
   };
 
@@ -76,12 +76,12 @@ const Navbar = () => {
     const user = auth.currentUser;
 
     if (!user) {
-      setError("No hay usuario autenticado");
+      setError("No authenticated user");
       return;
     }
 
     if (newPassword.length < 8) {
-      setError("La nueva contraseña debe tener al menos 8 caracteres");
+      setError("New password must have at least 8 characters");
       return;
     }
 
@@ -94,14 +94,14 @@ const Navbar = () => {
       await reauthenticateWithCredential(user, credential);
       await updatePassword(user, newPassword);
 
-      console.log("Contraseña actualizada exitosamente");
+      console.log("Password updated successfully");
       setIsModalOpen(false);
-      // Aquí puedes agregar lógica adicional, como mostrar un mensaje de éxito
+      
     } catch (err) {
       if (err.code === 'auth/wrong-password') {
-        setError("La contraseña actual es incorrecta");
+        setError("Current password is incorrect");
       } else {
-        setError("Error al cambiar la contraseña: " + err.message);
+        setError("Error updating password: " + err.message);
       }
     }
   };
@@ -112,10 +112,10 @@ const Navbar = () => {
     const { firstName, lastName, email, role } = newUserData;
 
     if (!firstName || !lastName || !email || !role) {
-        alert("Por favor, completa todos los campos.");
+        alert("Please fill all required fields.");
         return;
     }
-    console.log("Creando usuario...");
+    console.log("Creting user...");
     try {
         const auth = getAuth();
         const tempPassword = 'TempPass123!';
@@ -125,12 +125,12 @@ const Navbar = () => {
         const uid = user.uid;
         const standardPassword = `${firstName[0]}${lastName}${uid.slice(-3)}`;
         console.log('Contraseña standard:', standardPassword);
-        // Reautenticación con las credenciales temporales
+        
         const credential = EmailAuthProvider.credential(email, tempPassword);
         await reauthenticateWithCredential(user, credential);
 
-        // Ahora puedes actualizar la contraseña
-        await updatePassword(user, standardPassword); // Esta línea es correcta
+
+        await updatePassword(user, standardPassword); 
         await updateProfile(user, {
             displayName: `${firstName} ${lastName}`
         });
@@ -144,11 +144,11 @@ const Navbar = () => {
             isActive: true
         });
 
-        alert(`Usuario creado exitosamente. Contraseña: ${standardPassword}`);
+        alert(`Use created successfully. Temporary Password: ${standardPassword}`);
         setIsModalOpen(false);
     } catch (error) {
-        console.error('Error al crear usuario:', error);
-        alert(`Error al crear usuario: ${error.message}`);
+        console.error('Error creating user:', error);
+        alert(`Error creating user: ${error.message}`);
     }
   };
 
@@ -317,4 +317,4 @@ const Navbar = () => {
   );
 };
 
-export default Navbar;
+export default AdminNavbar;

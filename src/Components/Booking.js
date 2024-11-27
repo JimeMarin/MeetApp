@@ -15,14 +15,21 @@ const Booking = () => {
   const [selectedCapacity, setSelectedCapacity] = useState(1);
   const [availableCapacities, setAvailableCapacities] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
+  const [ContactFacilitiesChecked, setContactFacilitiesChecked] = useState(false);
+  const [ContactITChecked, setContactITChecked] = useState(false);
+  const [recurrence, setRecurrence] = useState('');
   const navigate = useNavigate();
   const db = getDatabase();
   const location = useLocation();
   const { date, startTime, endTime, availableRooms } = location.state || {};
-  const [ContactFacilitiesChecked, setContactFacilitiesChecked] = useState(false);
-  const [ContactITChecked, setContactITChecked] = useState(false);
-  const [recurrence, setRecurrence] = useState('');
-
+  
+  const steps = [
+    { id: 1, label: "Select Dates" },
+    { id: 2, label: "Select a Room" },
+    { id: 3, label: "Book" },
+  ];
+  
+  const currentStep = 2;
 
   useEffect(() => {
     const storedAttendees = localStorage.getItem('attendees');
@@ -70,14 +77,14 @@ const Booking = () => {
       setSelectedRoom(roomName);
 
       try {
-        // Crear una consulta para buscar la sala por nombre
+        
         const roomsRef = ref(db, 'meetingRooms');
         const roomQuery = query(roomsRef, orderByChild('roomName'), equalTo(roomName));
 
         const snapshot = await get(roomQuery);
 
         if (snapshot.exists()) {
-          // Obtener el primer (y único) resultado
+          
           const roomData = Object.values(snapshot.val())[0];
           console.log("Datos de la sala obtenidos:", roomData);
 
@@ -219,22 +226,13 @@ const Booking = () => {
     }
   };
 
-  const steps = [
-    { id: 1, label: "Select Dates" },
-    { id: 2, label: "Select a Room" },
-    { id: 3, label: "Book" },
-  ];
-  
-  const currentStep = 2;
 
   return (
     <div className="booking-container">
       <Navbar />
       <hr className="navbar-hr"></hr>
       <div className="booking-body">
-       <div className="column-left"> 
-        {/* <p>Date: {date ? new Date(date).toLocaleDateString() : 'Not selected'}</p>
-        <p>Time: {startTime && endTime ? `${startTime} - ${endTime}` : 'Not selected'}</p> */}
+       <div className="column-left">         
         <select id='room-selector' onChange={(e) => handleRoomChange(e.target.value)} value={selectedRoom}>
           <option value="" disable selected hidden>Select a meeting room</option>
           {availableRooms && availableRooms.map(room => (

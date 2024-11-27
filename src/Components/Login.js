@@ -26,21 +26,20 @@ const Login = () => {
     e.preventDefault();
 
     try {
-      // Establecer la persistencia basada en la opción "Remember me"
+      
       await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
       
-      // Iniciar sesión
+    
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       
-      // Manejar "Remember me"
+  
       if (rememberMe) {
         localStorage.setItem('rememberedEmail', email);
       } else {
         localStorage.removeItem('rememberedEmail');
       }
-      
-      // No limpiar el email si "Remember me" está activado
+
       if (!rememberMe) {
         setEmail('');
       }
@@ -53,24 +52,24 @@ const Login = () => {
       if (snapshot.exists()) {
         const userData = snapshot.val();
 
-        // Redirección basada en el rol del usuario
+   
         if (userData.role === 'admin') {
-            navigate('/AdminDash'); // Redirigir al dashboard de empleados
+            navigate('/AdminDash'); 
         } else if (userData.role === 'user') {
             navigate('/Dashboard');
           } else {
-            alert('Acceso denegado. No tienes permiso para acceder a esta área.');
-            await auth.signOut(); // Deslogar si no es un rol válido
-            navigate('/'); // Redirigir a la página inicial
+            alert('Access denied.');
+            await auth.signOut(); 
+            navigate('/'); 
         }
       } else {
-          alert('Usuario no encontrado.');
-          await auth.signOut(); // Deslogar si no se encuentra el usuario
-          navigate('/'); // Redirigir a la página inicial
+          alert('User not found.');
+          await auth.signOut(); 
+          navigate('/'); 
       }
     } catch (error) {      
-      console.error('Inicio de sesión fallido:', error);
-      alert('Correo electrónico o contraseña inválidos');
+      console.error('Login failed:', error);
+      alert('Email or password is incorrect.');
     }
   };
 

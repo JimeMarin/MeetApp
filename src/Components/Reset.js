@@ -18,15 +18,15 @@ const Reset = () => {
     setSuccess(false);
 
     try {
-      // Primero, autenticar al usuario con el email y la contraseña actual
+      
       const userCredential = await signInWithEmailAndPassword(auth, email, currentPassword);
       const user = userCredential.user;
 
-      // Si la autenticación es exitosa, actualizar la contraseña
+   
       await updatePassword(user, newPassword);
 
       setSuccess(true);
-      setTimeout(() => navigate('/login'), 2000); // Redirigir al login después de 2 segundos
+      setTimeout(() => navigate('/login'), 2000); 
     } catch (error) {
       setError(error.message);
     }

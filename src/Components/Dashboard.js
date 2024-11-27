@@ -1,6 +1,5 @@
   import React, { useState, useEffect } from 'react';
-  import { onAuthStateChanged, getAuth } from 'firebase/auth';
-  import { auth } from './firebaseConfig'; 
+  import { onAuthStateChanged, getAuth } from 'firebase/auth'; 
   import { useNavigate } from 'react-router-dom';
   import { getDatabase, ref, get, query, orderByChild, equalTo, update, remove, onValue } from 'firebase/database';
   import Calendar from 'react-calendar';
@@ -55,7 +54,7 @@
       };
     }, []);
 
-    // En el componente DatePicker, asegúrate de usar la zona horaria local
+    
     <DatePicker
       selected={newDate}
       onChange={(date) => setNewDate(date)}
@@ -69,7 +68,7 @@
       const auth = getAuth();
       const user = auth.currentUser;
       if (!user) {
-        console.error("No hay usuario autenticado");
+        console.error("Unauthenticated user");
         return;
       }
       const db = getDatabase();
@@ -87,7 +86,7 @@
           }));
           setReservations(fetchedReservations);
         } else {
-          console.log('No se encontraron reservas.');
+          console.log('No bookings found.');
           setReservations([]);
         }
       });
@@ -121,7 +120,7 @@
         const userEndTime = new Date(`${date.toDateString()} ${endTime}`);
     
         console.log("Checking room availability...");
-        Object.entries(rooms).forEach(([roomId, room]) => {
+        Object.entries(rooms).forEach(([room]) => {
           console.log(`Checking room: ${room.roomName}`);
           
           if (!room.isAvailable) {
@@ -209,7 +208,7 @@
       const auth = getAuth();
       const user = auth.currentUser;
       if (!user) {
-        console.error("No hay usuario autenticado");
+        console.error("No authenticated user found.");
         return;
       }
       const db = getDatabase();
@@ -268,7 +267,7 @@
         const auth = getAuth();
         const user = auth.currentUser;
         if (!user) {
-          console.error("No hay usuario autenticado");
+          console.error("No authenticated user found.");
           return;
         }
         const db = getDatabase();
